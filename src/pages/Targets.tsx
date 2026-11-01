@@ -7,7 +7,7 @@ import type { EmployeeTarget, Profile, StoreTarget } from '../lib/types'
 import { Button, Card, Field, Input, Spinner } from '../components/ui'
 
 export default function Targets() {
-  const { profile, store } = useAuth()
+  const { profile, store, isAdmin } = useAuth()
   const [month, setMonth] = useState(currentMonth())
   const [storeTarget, setStoreTarget] = useState<StoreTarget | null>(null)
   const [empTargets, setEmpTargets] = useState<EmployeeTarget[]>([])
@@ -16,7 +16,7 @@ export default function Targets() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
-  const canEdit = profile?.role === 'admin' || profile?.can_edit_points === true
+  const canEdit = isAdmin || profile?.can_edit_points === true
 
   async function load() {
     if (!store) return
@@ -74,8 +74,6 @@ export default function Targets() {
 
   if (loading) return <Spinner />
 
-  const canEditProjection = canEdit || true // every employee can edit their own projection
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -128,7 +126,7 @@ export default function Targets() {
                 const t = empTargets.find((x) => x.user_id === e.id)
                 const isMe = e.id === profile?.id
                 const editPoints = canEdit
-                const editProj = canEditProjection && (isMe || canEdit)
+                const editProj = isMe || canEdit
                 return (
                   <tr key={e.id}>
                     <td className="py-2 pr-2 font-medium text-slate-800">{e.full_name}</td>

@@ -36,7 +36,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold text-slate-900">Καλημέρα, {profile?.full_name.split(' ')[0]} 👋</h1>
+      <h1 className="text-xl font-bold text-slate-900">Καλημέρα, {profile?.full_name.split(' ')[0]}</h1>
       <p className="text-sm text-slate-500">{monthLabel(month)}</p>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -77,7 +77,7 @@ export default function Dashboard() {
 
       {activeOrders.length > 0 && (
         <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 text-sm text-amber-800">
-          📌 Έχεις <strong>{activeOrders.length}</strong> παραγγελία(ες) σε εκκρεμότητα.
+          Έχεις <strong>{activeOrders.length}</strong> παραγγελία(ες) σε εκκρεμότητα.
         </div>
       )}
     </div>

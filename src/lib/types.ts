@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'user'
+export type Role = 'master' | 'admin' | 'user'
 
 export interface Profile {
   id: string
@@ -9,12 +9,14 @@ export interface Profile {
   email: string
   active: boolean
   can_edit_points: boolean
+  is_primary: boolean
   created_at: string
 }
 
 export interface Store {
   id: string
   name: string
+  code: string | null
   address: string | null
   phone: string | null
   open_hours: string | null
@@ -109,3 +111,5 @@ export interface ActivityLog {
   detail: string | null
   created_at: string
 }
+
+export type AccountType = 'user' | 'admin'

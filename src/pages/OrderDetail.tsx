@@ -121,7 +121,7 @@ export default function OrderDetail() {
           <div><span className="text-slate-500">Δημιουργήθηκε:</span> {fmtDateTime(order.created_at)}</div>
           <div><span className="text-slate-500">Ενημερώθηκε:</span> {fmtDateTime(order.updated_at)}</div>
         </div>
-        {order.notes && <p className="mt-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">📝 {order.notes}</p>}
+        {order.notes && <p className="mt-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">{order.notes}</p>}
       </Card>
 
       <Card>

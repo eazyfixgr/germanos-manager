@@ -9,7 +9,7 @@ import { Badge, Button, Card, Field, Input, Modal, Select, Spinner, Textarea } f
 type Tab = 'week' | 'requests'
 
 export default function Schedule() {
-  const { profile, store } = useAuth()
+  const { profile, store, isAdmin } = useAuth()
   const [tab, setTab] = useState<Tab>('week')
   const [shifts, setShifts] = useState<Shift[]>([])
   const [employees, setEmployees] = useState<Profile[]>([])
@@ -18,8 +18,6 @@ export default function Schedule() {
   const [showReq, setShowReq] = useState(false)
   const [req, setReq] = useState({ type: 'repo' as 'repo' | 'adeia', start: '', end: '', reason: '' })
   const [busy, setBusy] = useState(false)
-
-  const isAdmin = profile?.role === 'admin'
 
   async function load() {
     if (!store) return

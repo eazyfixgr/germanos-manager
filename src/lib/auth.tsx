@@ -1,15 +1,25 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
-import type { Profile, Store } from '../lib/types'
+import type { AccountType, Profile, Store } from '../lib/types'
 
 interface AuthState {
   session: { user: { id: string; email: string } } | null
   profile: Profile | null
   store: Store | null
   loading: boolean
+  isMaster: boolean
+  isAdmin: boolean
+  isPrimary: boolean
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
-  signUp: (email: string, password: string, fullName: string, storeName: string) => Promise<{ error: string | null }>
+  signUp: (
+    email: string,
+    password: string,
+    fullName: string,
+    accountType: AccountType,
+    storeName: string,
+    storeCode: string,
+  ) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
 }
@@ -75,26 +85,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: null }
   }
 
-  async function signUp(email: string, password: string, fullName: string, storeName: string) {
-    // Το profile και το κατάστημα δημιουργούνται αυτόματα από trigger στη βάση,
-    // χρησιμοποιώντας τα metadata που στέλνουμε εδώ.
+  async function signUp(
+    email: string,
+    password: string,
+    fullName: string,
+    accountType: AccountType,
+    storeName: string,
+    storeCode: string,
+  ) {
+    // Το profile/κατάστημα δημιουργούνται από trigger στη βάση με βάση τα metadata.
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
           full_name: fullName.trim(),
+          account_type: accountType,
           store_name: storeName.trim(),
+          store_code: storeCode.trim().toUpperCase(),
         },
       },
     })
     if (error) {
-      if (error.message.toLowerCase().includes('already registered')) {
+      const msg = error.message.toLowerCase()
+      if (msg.includes('already registered')) {
         return { error: 'Υπάρχει ήδη λογαριασμός με αυτό το email.' }
+      }
+      if (msg.includes('store_code_not_found')) {
+        return { error: 'Δεν βρέθηκε κατάστημα με αυτόν τον κωδικό.' }
+      }
+      if (msg.includes('store_name_required')) {
+        return { error: 'Απαιτείται όνομα καταστήματος.' }
+      }
+      if (msg.includes('store_code_required')) {
+        return { error: 'Απαιτείται κωδικός καταστήματος.' }
       }
       return { error: error.message }
     }
-
     return { error: null }
   }
 
@@ -104,7 +131,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ session, profile, store, loading, signIn, signUp, signOut, refreshProfile }}
+      value={{
+        session,
+        profile,
+        store,
+        loading,
+        isMaster: profile?.role === 'master',
+        isAdmin: profile?.role === 'admin' || profile?.role === 'master',
+        isPrimary:
+          profile?.role === 'master' || (profile?.role === 'admin' && profile.is_primary === true),
+        signIn,
+        signUp,
+        signOut,
+        refreshProfile,
+      }}
     >
       {children}
     </AuthContext.Provider>
