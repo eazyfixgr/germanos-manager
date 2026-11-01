@@ -27,6 +27,8 @@ export default function OrderDetail() {
   const [busy, setBusy] = useState(false)
   const [scanMode, setScanMode] = useState(false)
   const [scanNote, setScanNote] = useState('')
+  const [slipOpen, setSlipOpen] = useState(false)
+  const [qr, setQr] = useState('')
 
   const load = useCallback(async () => {
     if (!id) return
@@ -97,6 +99,24 @@ export default function OrderDetail() {
 
   const scanner = useScanner(handleScan)
 
+  async function openSlip() {
+    if (!order) return
+    setSlipOpen(true)
+    try {
+      const mod: any = await import('qrcode')
+      const QRCode = mod.default ?? mod
+      const text = [
+        `Παραγγελία: ${order.id.slice(0, 8)}`,
+        `${order.product_name} (${order.product_code})`,
+        `Πελάτης: ${order.customer_name}`,
+        order.customer_phone ? `Τηλ: ${order.customer_phone}` : '',
+      ].filter(Boolean).join('\n')
+      setQr(await QRCode.toDataURL(text, { margin: 1, width: 220 }))
+    } catch {
+      setQr('')
+    }
+  }
+
   if (loading) return <Spinner />
   if (!order) return <div className="text-sm text-slate-500">Η παραγγελία δεν βρέθηκε.</div>
 
@@ -157,6 +177,14 @@ export default function OrderDetail() {
 
       <Card>
         <div className="flex items-center justify-between">
+          <h2 className="font-semibold text-slate-900">Ετικέτα παραλαβής</h2>
+          <Button variant="secondary" onClick={openSlip}>Εκτύπωση ετικέτας</Button>
+        </div>
+        <p className="mt-1 text-xs text-slate-500">Δημιουργεί slip με QR για την παραγγελία του πελάτη.</p>
+      </Card>
+
+      <Card>
+        <div className="flex items-center justify-between">
           <h2 className="font-semibold text-slate-900">Σκαναρίσματος τιμολογίου</h2>
           <Button variant="secondary" onClick={() => { setScanMode(!scanMode); if (scanMode) { scanner.stop() } else { scanner.start('scan-area') } }}>
             {scanMode ? 'Σταμάτημα' : 'Σκανάρισμα κωδικού'}
@@ -206,6 +234,34 @@ export default function OrderDetail() {
           </ul>
         )}
       </Card>
+
+      {slipOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setSlipOpen(false)}>
+          <div
+            id="print-slip"
+            className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center">
+              <div className="text-base font-bold text-slate-900">Γερμανός Manager</div>
+              <div className="text-xs text-slate-500">Απόδειξη παραγγελίας πελάτη</div>
+            </div>
+            {qr && <img src={qr} alt="QR" className="mx-auto mt-4 h-44 w-44" />}
+            <div className="mt-3 space-y-1 text-sm text-slate-800">
+              <div><span className="text-slate-500">Κωδικός:</span> {order.id.slice(0, 8).toUpperCase()}</div>
+              <div><span className="text-slate-500">Προϊόν:</span> {order.product_name}</div>
+              <div><span className="text-slate-500">Κωδικός είδους:</span> {order.product_code}</div>
+              <div><span className="text-slate-500">Πελάτης:</span> {order.customer_name}</div>
+              {order.customer_phone && <div><span className="text-slate-500">Τηλ:</span> {order.customer_phone}</div>}
+              <div><span className="text-slate-500">Ημερομηνία:</span> {fmtDateTime(order.created_at)}</div>
+            </div>
+            <div className="no-print mt-5 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setSlipOpen(false)}>Κλείσιμο</Button>
+              <Button onClick={() => window.print()}>Εκτύπωση</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -20,7 +20,7 @@ export default function Schedule() {
   const [busy, setBusy] = useState(false)
 
   async function load() {
-    if (!store) return
+    if (!store) { setLoading(false); return }
     const [sh, em, lv] = await Promise.all([
       supabase.from('shifts').select('*').eq('store_id', store.id),
       supabase.from('profiles').select('*').eq('store_id', store.id).eq('active', true),

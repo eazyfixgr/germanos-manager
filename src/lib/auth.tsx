@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
 import type { AccountType, Profile, Store } from '../lib/types'
@@ -7,6 +7,9 @@ interface AuthState {
   session: { user: { id: string; email: string } } | null
   profile: Profile | null
   store: Store | null
+  stores: Store[]
+  activeStoreId: string | null
+  setActiveStoreId: (id: string) => void
   loading: boolean
   isMaster: boolean
   isAdmin: boolean
@@ -29,30 +32,54 @@ const AuthContext = createContext<AuthState | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AuthState['session']>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [store, setStore] = useState<Store | null>(null)
+  const [stores, setStores] = useState<Store[]>([])
+  const [activeStoreId, setActiveStoreIdState] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
+  const store = useMemo(
+    () => stores.find((s) => s.id === activeStoreId) ?? null,
+    [stores, activeStoreId],
+  )
+
   async function loadProfile(userId: string) {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single()
-    if (data) {
-      setProfile(data as Profile)
-      if (data.store_id) {
-        const { data: st } = await supabase
-          .from('stores')
-          .select('*')
-          .eq('id', data.store_id)
-          .single()
-        if (st) setStore(st as Store)
+    const { data } = await supabase.from('profiles').select('*').eq('id', userId).single()
+    if (!data) return
+    const p = data as Profile
+    setProfile(p)
+
+    if (p.role === 'master') {
+      const { data: st } = await supabase
+        .from('stores')
+        .select('*')
+        .is('deleted_at', null)
+        .order('name')
+      const list = (st as Store[]) ?? []
+      setStores(list)
+      const saved = localStorage.getItem('gm_active_store')
+      const initial = list.find((s) => s.id === saved)?.id ?? list[0]?.id ?? null
+      setActiveStoreIdState(initial)
+    } else if (p.store_id) {
+      const { data: st } = await supabase.from('stores').select('*').eq('id', p.store_id).single()
+      if (st) {
+        setStores([st as Store])
+        setActiveStoreIdState((st as Store).id)
+      } else {
+        setStores([])
+        setActiveStoreIdState(null)
       }
+    } else {
+      setStores([])
+      setActiveStoreIdState(null)
     }
   }
 
   async function refreshProfile() {
     if (session?.user?.id) await loadProfile(session.user.id)
+  }
+
+  function setActiveStoreId(id: string) {
+    setActiveStoreIdState(id)
+    localStorage.setItem('gm_active_store', id)
   }
 
   useEffect(() => {
@@ -72,7 +99,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setSession(null)
         setProfile(null)
-        setStore(null)
+        setStores([])
+        setActiveStoreIdState(null)
       }
     })
 
@@ -93,7 +121,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     storeName: string,
     storeCode: string,
   ) {
-    // Το profile/κατάστημα δημιουργούνται από trigger στη βάση με βάση τα metadata.
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -135,6 +162,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         profile,
         store,
+        stores,
+        activeStoreId,
+        setActiveStoreId,
         loading,
         isMaster: profile?.role === 'master',
         isAdmin: profile?.role === 'admin' || profile?.role === 'master',

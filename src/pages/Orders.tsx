@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
-import { fmtDate, ORDER_STATUS } from '../lib/constants'
+import { fmtDate, fmtDateTime, ORDER_STATUS } from '../lib/constants'
 import { logActivity } from '../lib/activity'
+import { downloadCsv } from '../lib/csv'
 import type { Order, OrderStatus } from '../lib/types'
 import { Badge, Button, Card, Field, Input, Modal, Select, Spinner, Textarea } from '../components/ui'
 
@@ -21,7 +22,7 @@ export default function Orders() {
   const [error, setError] = useState('')
 
   async function load() {
-    if (!store) return
+    if (!store) { setLoading(false); return }
     const { data } = await supabase
       .from('orders')
       .select('*')
@@ -58,6 +59,23 @@ export default function Orders() {
     return list
   }, [orders, filter, search])
 
+  const overdue = useMemo(() => {
+    const cutoff = Date.now() - 2 * 86400000
+    return orders.filter((o) => o.status === 'ready' && new Date(o.updated_at).getTime() < cutoff)
+  }, [orders])
+
+  function exportCsv() {
+    const rows = filtered.map((o) => [
+      o.product_code, o.product_name, o.customer_name, o.customer_phone ?? '',
+      ORDER_STATUS[o.status].label, fmtDateTime(o.created_at),
+    ])
+    downloadCsv(
+      `paraggelies-${new Date().toISOString().slice(0, 10)}.csv`,
+      ['Κωδικός', 'Προϊόν', 'Πελάτης', 'Τηλέφωνο', 'Κατάσταση', 'Δημιουργία'],
+      rows,
+    )
+  }
+
   async function createOrder(e: React.FormEvent) {
     e.preventDefault()
     setError('')
@@ -85,10 +103,19 @@ export default function Orders() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-bold text-slate-900">Παραγγελίες</h1>
-        <Button onClick={() => setShowNew(true)}>+ Νέα παραγγελία</Button>
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" onClick={exportCsv}>Εξαγωγή CSV</Button>
+          <Button onClick={() => setShowNew(true)}>Νέα παραγγελία</Button>
+        </div>
       </div>
+
+      {overdue.length > 0 && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          Υπενθύμιση: <strong>{overdue.length}</strong> έτοιμη(ες) παραγγελία(ες) χωρίς ενημέρωση πελάτη πάνω από 2 ημέρες.
+        </div>
+      )}
 
       <div className="flex flex-col gap-2 sm:flex-row">
         <Input

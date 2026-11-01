@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { currentMonth, fmtNum, monthLabel } from '../lib/constants'
+import { downloadCsv } from '../lib/csv'
 import { logActivity } from '../lib/activity'
 import type { EmployeeTarget, Profile, StoreTarget } from '../lib/types'
 import { Button, Card, Field, Input, Spinner } from '../components/ui'
@@ -19,7 +20,7 @@ export default function Targets() {
   const canEdit = isAdmin || profile?.can_edit_points === true
 
   async function load() {
-    if (!store) return
+    if (!store) { setLoading(false); return }
     setLoading(true)
     const [st, et, em] = await Promise.all([
       supabase.from('store_targets').select('*').eq('store_id', store.id).eq('month', month).maybeSingle(),
@@ -72,20 +73,31 @@ export default function Targets() {
     await load()
   }
 
+  function exportCsv() {
+    const rows = employees.map((e) => {
+      const t = empTargets.find((x) => x.user_id === e.id)
+      return [e.full_name, e.email, t?.points ?? 0, t?.projection ?? 0]
+    })
+    downloadCsv(`stoxoi-${month}.csv`, ['Υπάλληλος', 'Email', 'Στόχος', 'Projection'], rows)
+  }
+
   if (loading) return <Spinner />
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-bold text-slate-900">Στόχοι</h1>
-        <Field label="Μήνας">
-          <input
-            type="month"
-            value={month}
-            onChange={(e) => setMonth(e.target.value)}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          />
-        </Field>
+        <div className="flex items-end gap-2">
+          <Field label="Μήνας">
+            <input
+              type="month"
+              value={month}
+              onChange={(e) => setMonth(e.target.value)}
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+          </Field>
+          <Button variant="secondary" onClick={exportCsv}>Εξαγωγή CSV</Button>
+        </div>
       </div>
       <p className="text-sm text-slate-500">{monthLabel(month)}</p>
 

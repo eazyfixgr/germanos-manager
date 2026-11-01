@@ -24,6 +24,7 @@ export default function Employees() {
     let q = supabase
       .from('profiles')
       .select('*, stores(name, code)')
+      .is('deleted_at', null)
       .order('created_at', { ascending: true })
     if (!isMaster) q = q.eq('store_id', store?.id ?? '00000000-0000-0000-0000-000000000000')
     const { data } = await q

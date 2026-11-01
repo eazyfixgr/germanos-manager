@@ -18,6 +18,7 @@ export default function Requests() {
       .from('profiles')
       .select('*, stores(name, code)')
       .eq('active', false)
+      .is('deleted_at', null)
       .order('created_at', { ascending: true })
     if (!isPrimary) q = q.eq('role', 'user')
     const { data } = await q

@@ -33,6 +33,16 @@ create table if not exists public.profiles (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.master_allowlist (
+  email text primary key,
+  note text,
+  created_at timestamptz not null default now()
+);
+
+insert into public.master_allowlist (email, note)
+values ('g.tsouhnikas@gmail.com', 'Master')
+on conflict (email) do nothing;
+
 create table if not exists public.store_targets (
   id uuid primary key default gen_random_uuid(),
   store_id uuid not null references public.stores(id) on delete cascade,
@@ -120,6 +130,9 @@ create table if not exists public.activity_log (
 -- ------------------------------------------------------------
 alter table public.stores add column if not exists code text;
 alter table public.profiles add column if not exists is_primary boolean not null default false;
+alter table public.profiles add column if not exists deleted_at timestamptz;
+alter table public.profiles add column if not exists deleted_by uuid;
+alter table public.stores add column if not exists deleted_at timestamptz;
 
 alter table public.profiles drop constraint if exists profiles_role_check;
 alter table public.profiles
@@ -345,6 +358,24 @@ create trigger on_auth_user_created after insert on auth.users
   for each row execute function public.handle_new_user();
 
 -- (καθαρισμός παλιού trigger)
+-- Master allowlist: κανείς δεν γίνεται master αν το email του δεν είναι στη λίστα
+create or replace function public.enforce_master_allowlist()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if new.role = 'master'
+     and not exists (
+       select 1 from public.master_allowlist where lower(email) = lower(new.email)
+     ) then
+    new.role := 'admin';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_master_allowlist on public.profiles;
+create trigger trg_master_allowlist before insert or update on public.profiles
+  for each row execute function public.enforce_master_allowlist();
+
 drop trigger if exists trg_auto_admin on public.profiles;
 
 -- ------------------------------------------------------------
@@ -404,11 +435,14 @@ begin
   end if;
 
   select role, store_id into tr, ts from public.profiles where id = target;
+  if tr is null then
+    return;
+  end if;
   if tr = 'master' then
     raise exception 'Δεν επιτρέπεται η διαγραφή master λογαριασμού';
   end if;
 
-  if tr is not null and not public.is_master() then
+  if not public.is_master() then
     if ts is distinct from public.current_store() then
       raise exception 'Δεν έχετε πρόσβαση σε αυτό το κατάστημα';
     end if;
@@ -423,11 +457,69 @@ begin
     end if;
   end if;
 
-  delete from auth.users where id = target;  -- cascade -> profiles
+  -- Soft delete (κάδος ανακύκλωσης)
+  update public.profiles
+     set deleted_at = now(), deleted_by = auth.uid(), active = false, is_primary = false
+   where id = target;
 end;
 $$;
 revoke all on function public.delete_user(uuid) from public;
 grant execute on function public.delete_user(uuid) to authenticated;
+
+create or replace function public.restore_user(target uuid)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  tr text;
+  ts uuid;
+begin
+  select role, store_id into tr, ts from public.profiles where id = target and deleted_at is not null;
+  if tr is null then
+    return;
+  end if;
+  if tr = 'master' then
+    raise exception 'Δεν επιτρέπεται';
+  end if;
+  if not public.is_master() then
+    if ts is distinct from public.current_store() then
+      raise exception 'Δεν έχετε πρόσβαση σε αυτό το κατάστημα';
+    end if;
+    if tr = 'admin' then
+      if not public.is_primary_admin() then
+        raise exception 'Μόνο ο κύριος υπεύθυνος';
+      end if;
+    elsif tr = 'user' then
+      if not public.is_admin() then
+        raise exception 'Δεν έχετε δικαίωμα';
+      end if;
+    end if;
+  end if;
+
+  -- Επαναφορά σε ανενεργή κατάσταση (χρειάζεται εκ νέου έγκριση)
+  update public.profiles
+     set deleted_at = null, deleted_by = null, active = false, is_primary = false
+   where id = target;
+end;
+$$;
+revoke all on function public.restore_user(uuid) from public;
+grant execute on function public.restore_user(uuid) to authenticated;
+
+create or replace function public.purge_user(target uuid)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_master() then
+    raise exception 'Μόνο ο master μπορεί να διαγράψει οριστικά';
+  end if;
+  if target = auth.uid() then
+    raise exception 'Δεν μπορείτε να διαγράψετε τον εαυτό σας';
+  end if;
+  if exists (select 1 from public.profiles where id = target and role = 'master') then
+    raise exception 'Δεν επιτρέπεται';
+  end if;
+  delete from auth.users where id = target;  -- cascade -> profiles
+end;
+$$;
+revoke all on function public.purge_user(uuid) from public;
+grant execute on function public.purge_user(uuid) to authenticated;
 
 create or replace function public.set_primary(target uuid, val boolean)
 returns void language plpgsql security definer set search_path = public as $$
@@ -627,6 +719,17 @@ drop policy if exists activity_insert on public.activity_log;
 create policy activity_insert on public.activity_log
   for insert with check (public.is_master() or store_id = public.current_store());
 
+-- master_allowlist
+alter table public.master_allowlist enable row level security;
+
+drop policy if exists master_allowlist_select on public.master_allowlist;
+create policy master_allowlist_select on public.master_allowlist
+  for select using (public.is_master());
+
+drop policy if exists master_allowlist_write on public.master_allowlist;
+create policy master_allowlist_write on public.master_allowlist
+  for all using (public.is_master()) with check (public.is_master());
+
 -- ------------------------------------------------------------
 -- 8) Realtime
 -- ------------------------------------------------------------
@@ -651,7 +754,6 @@ end $$;
 
 -- ------------------------------------------------------------
 -- 9) MASTER ACCOUNT
--- Ο master ορίζεται χειροκίνητα (βλ. οδηγίες). Παράδειγμα:
---   update public.profiles set role='master', active=true, is_primary=true
---   where email = 'to-email-sou@example.com';
+-- Ο master δεν ανήκει σε κατάστημα και ορίζεται από το master_allowlist.
 -- ------------------------------------------------------------
+update public.profiles set store_id = null where role = 'master';

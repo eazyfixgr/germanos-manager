@@ -4,12 +4,14 @@ export interface Profile {
   id: string
   full_name: string
   role: Role
-  store_id: string
+  store_id: string | null
   phone: string | null
   email: string
   active: boolean
   can_edit_points: boolean
   is_primary: boolean
+  deleted_at: string | null
+  deleted_by: string | null
   created_at: string
 }
 
@@ -20,6 +22,7 @@ export interface Store {
   address: string | null
   phone: string | null
   open_hours: string | null
+  deleted_at: string | null
 }
 
 export interface StoreTarget {

@@ -12,3 +12,22 @@ body {
 html, body, #root {
   height: 100%;
 }
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  #print-slip,
+  #print-slip * {
+    visibility: visible !important;
+  }
+  #print-slip {
+    position: absolute !important;
+    inset: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
