@@ -14,28 +14,15 @@ Responsive web app (React + Vite + Tailwind), με **Supabase** για auth, β�
 - **Υπάλληλοι**: έγκριση νέων χρηστών, ενεργοποίηση/απενεργοποίηση, αλλαγή ρόλου, δικαιώματα.
 - **Ιστορικό ενεργειών** (activity log).
 
-## Setup — 2 βήματα που κάνεις ΕΣΥ (απαραίτητα)
+## Setup (έχει ήδη γίνει)
 
-### 1. Δημιούργησε το Supabase project
+Το Supabase project, το schema (`supabase/schema.sql`) και τα GitHub Actions secrets έχουν ήδη ρυθμιστεί. Η εφαρμογή είναι έτοιμη στο:
 
-1. Πήγαινε στο [supabase.com](https://supabase.com) και κάνε **Sign in** (μπορείς με Google/GitHub).
-2. Πάτα **New project** → διάλεξε ένα όνομα (π.χ. `germanos-manager`), ισχυρό database password, region `Frankfurt (eu-central-1)`.
-3. Περίμενε να δημιουργηθεί (1-2 λεπτά).
-4. Πήγαινε **Project Settings → API** και αντέγραψε:
-   - **Project URL** (π.χ. `https://xxxx.supabase.co`)
-   - **anon public** key (το δεύτερο κλειδί)
-5. Πήγαινε **SQL Editor → New query**, κάνε paste ΟΛΟ το περιεχόμενο του αρχείου [`supabase/schema.sql`](supabase/schema.sql) και πάτα **Run**.
+**https://eazyfixgr.github.io/germanos-manager/**
 
-### 2. Δώσε τα κλειδιά στο deployment
+Αν χρειαστεί να ξανατρέξεις το schema σε άλλο project, τρέξε το `supabase/schema.sql` στο **SQL Editor** και πρόσθεσε τα secrets `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` στο repo.
 
-Στο GitHub repo σου (`eazyfixgr/germanos-manager`), πήγαινε **Settings → Secrets and variables → Actions → New repository secret** και πρόσθεσε:
-
-| Name | Value |
-|------|-------|
-| `VITE_SUPABASE_URL` | το Project URL |
-| `VITE_SUPABASE_ANON_KEY` | το anon public key |
-
-Μετά πήγαινε **Settings → Pages** και βεβαιώσου ότι το Source είναι **GitHub Actions** (γίνεται αυτόματα μετά το πρώτο push).
+> Σημείωση: η επιβεβαίωση email είναι απενεργοποιημένη (εσωτερική εφαρμογή). Κάθε νέος χρήστης χρειάζεται έγκριση από τον admin.
 
 ## Τοπική ανάπτυξη
 
