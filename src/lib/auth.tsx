@@ -76,48 +76,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signUp(email: string, password: string, fullName: string, storeName: string) {
-    const { data, error } = await supabase.auth.signUp({ email, password })
+    // Το profile και το κατάστημα δημιουργούνται αυτόματα από trigger στη βάση,
+    // χρησιμοποιώντας τα metadata που στέλνουμε εδώ.
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName.trim(),
+          store_name: storeName.trim(),
+        },
+      },
+    })
     if (error) {
-      if (error.message.includes('already registered')) {
+      if (error.message.toLowerCase().includes('already registered')) {
         return { error: 'Υπάρχει ήδη λογαριασμός με αυτό το email.' }
       }
       return { error: error.message }
     }
-
-    const userId = data.user?.id
-    if (!userId) return { error: 'Αποτυχία εγγραφής.' }
-
-    // Δημιουργία ή εύρεση καταστήματος
-    let storeId: string | null = null
-    const { data: existing } = await supabase
-      .from('stores')
-      .select('id')
-      .eq('name', storeName.trim())
-      .maybeSingle()
-    if (existing) {
-      storeId = existing.id
-    } else {
-      const { data: created } = await supabase
-        .from('stores')
-        .insert({ name: storeName.trim() })
-        .select('id')
-        .single()
-      storeId = created?.id ?? null
-    }
-
-    if (!storeId) return { error: 'Αποτυχία δημιουργίας καταστήματος.' }
-
-    const { error: profileErr } = await supabase
-      .from('profiles')
-      .insert({
-        id: userId,
-        full_name: fullName.trim(),
-        email,
-        store_id: storeId,
-        role: 'user',
-        active: false,
-      })
-    if (profileErr) return { error: profileErr.message }
 
     return { error: null }
   }

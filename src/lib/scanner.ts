@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Html5Qrcode } from 'html5-qrcode'
+import type { Html5Qrcode } from 'html5-qrcode'
 
 export function useScanner(onResult: (text: string) => void) {
   const scannerRef = useRef<Html5Qrcode | null>(null)
@@ -19,6 +19,7 @@ export function useScanner(onResult: (text: string) => void) {
   const start = useCallback(
     async (elementId: string) => {
       setError('')
+      const { Html5Qrcode } = await import('html5-qrcode')
       const scanner = new Html5Qrcode(elementId)
       scannerRef.current = scanner
       try {
@@ -47,29 +48,23 @@ export function useScanner(onResult: (text: string) => void) {
   return { start, stop, scanning, error }
 }
 
-export function scanInvoiceFile(
+export async function scanInvoiceFile(
   file: File,
   onResult: (text: string) => void,
 ): Promise<void> {
-  return new Promise((resolve, reject) => {
-    let el = document.getElementById('scan-file-hidden')
-    if (!el) {
-      el = document.createElement('div')
-      el.id = 'scan-file-hidden'
-      el.style.display = 'none'
-      document.body.appendChild(el)
-    }
-    const scanner = new Html5Qrcode('scan-file-hidden')
-    scanner
-      .scanFile(file, true)
-      .then((decoded) => {
-        onResult(decoded)
-        scanner.clear()
-        resolve()
-      })
-      .catch((e) => {
-        scanner.clear()
-        reject(e)
-      })
-  })
+  const { Html5Qrcode } = await import('html5-qrcode')
+  let el = document.getElementById('scan-file-hidden')
+  if (!el) {
+    el = document.createElement('div')
+    el.id = 'scan-file-hidden'
+    el.style.display = 'none'
+    document.body.appendChild(el)
+  }
+  const scanner = new Html5Qrcode('scan-file-hidden')
+  try {
+    const decoded = await scanner.scanFile(file, true)
+    onResult(decoded)
+  } finally {
+    scanner.clear()
+  }
 }
