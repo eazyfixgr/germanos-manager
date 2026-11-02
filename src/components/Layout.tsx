@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 
 type IconName =
   | 'home' | 'target' | 'box' | 'calendar' | 'inbox' | 'users' | 'store'
-  | 'history' | 'shield' | 'user' | 'trash' | 'upload' | 'building' | 'layers' | 'check'
+  | 'history' | 'shield' | 'user' | 'trash' | 'upload' | 'building' | 'layers'
+  | 'check' | 'menu' | 'logout'
 
-function Icon({ name }: { name: IconName }) {
+function Icon({ name, className = '' }: { name: IconName; className?: string }) {
   const common = {
     width: 18,
     height: 18,
@@ -17,6 +18,7 @@ function Icon({ name }: { name: IconName }) {
     strokeWidth: 1.8,
     strokeLinecap: 'round' as const,
     strokeLinejoin: 'round' as const,
+    className,
   }
   switch (name) {
     case 'home':
@@ -49,6 +51,10 @@ function Icon({ name }: { name: IconName }) {
       return <svg {...common}><path d="m12 3 9 5-9 5-9-5 9-5Z" /><path d="m3 13 9 5 9-5" /><path d="m3 17 9 5 9-5" /></svg>
     case 'check':
       return <svg {...common}><path d="m5 12 4 4L19 6" /></svg>
+    case 'menu':
+      return <svg {...common}><path d="M3 6h18M3 12h18M3 18h18" /></svg>
+    case 'logout':
+      return <svg {...common}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="M16 17l5-5-5-5m5 5H9" /></svg>
   }
 }
 
@@ -57,6 +63,31 @@ interface Item {
   label: string
   icon: IconName
   end: boolean
+  badge?: 'requests' | 'orders'
+}
+interface Group { title: string; items: Item[] }
+
+const LABELS: Record<string, string> = {
+  '/': 'Αρχική',
+  '/targets': 'Στόχοι',
+  '/services': 'Υπηρεσίες',
+  '/orders': 'Παραγγελίες',
+  '/schedule': 'Πρόγραμμα',
+  '/tasks': 'Εργασίες',
+  '/requests': 'Αιτήσεις',
+  '/employees': 'Προσωπικό',
+  '/import': 'Εισαγωγή',
+  '/trash': 'Κάδος',
+  '/store': 'Κατάστημα',
+  '/stores': 'Καταστήματα',
+  '/security': 'Ασφάλεια',
+  '/activity': 'Ιστορικό',
+  '/account': 'Λογαριασμός',
+}
+
+function labelFor(path: string) {
+  if (path.startsWith('/orders/')) return 'Παραγγελία'
+  return LABELS[path] ?? 'Αρχική'
 }
 
 function roleLabel(role?: string, primary?: boolean) {
@@ -65,10 +96,17 @@ function roleLabel(role?: string, primary?: boolean) {
   return 'Υπάλληλος'
 }
 
-function Badge({ n }: { n: number }) {
+function initials(name?: string) {
+  if (!name) return '—'
+  return name.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase()
+}
+
+function CountBadge({ n, tone }: { n: number; tone: 'red' | 'amber' }) {
   if (n <= 0) return null
   return (
-    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 text-[11px] font-semibold text-white">
+    <span className={`ml-auto flex h-5 min-w-5 items-center justify-center rounded-md px-1.5 text-[10px] font-bold ${
+      tone === 'red' ? 'bg-red-500/90 text-white' : 'bg-amber-400/20 text-amber-200'
+    }`}>
       {n}
     </span>
   )
@@ -80,8 +118,10 @@ export default function Layout() {
     isAdmin, isMaster, signOut,
   } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [pending, setPending] = useState(0)
   const [reminders, setReminders] = useState(0)
+  const [open, setOpen] = useState(false)
 
   useEffect(() => {
     if (!isAdmin) return
@@ -116,55 +156,158 @@ export default function Layout() {
     return () => { cancelled = true; supabase.removeChannel(ch) }
   }, [store])
 
-  const items: Item[] = [
+  const overview: Item[] = [
     { to: '/', label: 'Αρχική', icon: 'home', end: true },
     { to: '/targets', label: 'Στόχοι', icon: 'target', end: false },
     { to: '/services', label: 'Υπηρεσίες', icon: 'layers', end: false },
-    { to: '/orders', label: 'Παραγγελίες', icon: 'box', end: false },
+    { to: '/orders', label: 'Παραγγελίες', icon: 'box', end: false, badge: 'orders' },
     { to: '/schedule', label: 'Πρόγραμμα', icon: 'calendar', end: false },
     { to: '/tasks', label: 'Εργασίες', icon: 'check', end: false },
   ]
+
+  const team: Item[] = []
   if (isAdmin) {
-    items.push(
-      { to: '/requests', label: 'Αιτήσεις', icon: 'inbox', end: false },
+    team.push(
+      { to: '/requests', label: 'Αιτήσεις', icon: 'inbox', end: false, badge: 'requests' },
       { to: '/employees', label: 'Προσωπικό', icon: 'users', end: false },
       { to: '/import', label: 'Εισαγωγή', icon: 'upload', end: false },
       { to: '/trash', label: 'Κάδος', icon: 'trash', end: false },
     )
   }
-  if (isAdmin && !isMaster) {
-    items.push({ to: '/store', label: 'Κατάστημα', icon: 'store', end: false })
-  }
+
+  const settings: Item[] = []
   if (isMaster) {
-    items.push({ to: '/stores', label: 'Καταστήματα', icon: 'building', end: false })
-    items.push({ to: '/security', label: 'Ασφάλεια', icon: 'shield', end: false })
+    settings.push({ to: '/stores', label: 'Καταστήματα', icon: 'building', end: false })
+    settings.push({ to: '/security', label: 'Ασφάλεια', icon: 'shield', end: false })
+  } else if (isAdmin) {
+    settings.push({ to: '/store', label: 'Κατάστημα', icon: 'store', end: false })
   }
-  items.push({ to: '/activity', label: 'Ιστορικό', icon: 'history', end: false })
-  items.push({ to: '/account', label: 'Λογαριασμός', icon: 'user', end: false })
+  settings.push({ to: '/activity', label: 'Ιστορικό', icon: 'history', end: false })
+  settings.push({ to: '/account', label: 'Λογαριασμός', icon: 'user', end: false })
+
+  const groups: Group[] = [
+    { title: 'Επισκόπηση', items: overview },
+    ...(team.length ? [{ title: 'Ομάδα & Διαχείριση', items: team }] : []),
+    { title: 'Ρυθμίσεις', items: settings },
+  ]
+
+  function badgeFor(item: Item) {
+    if (item.badge === 'requests') return <CountBadge n={pending} tone="red" />
+    if (item.badge === 'orders') return <CountBadge n={reminders} tone="amber" />
+    return null
+  }
+
+  const sidebar = (
+    <>
+      <div className="flex items-center gap-3 border-b border-white/10 px-5 py-6">
+        <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-[#516de8] to-[#2d54ce] text-lg font-extrabold text-white shadow-lg shadow-blue-900/30">
+          G
+        </div>
+        <div>
+          <div className="text-sm font-bold text-white">Γερμανός Manager</div>
+          <div className="mt-0.5 text-[10px] tracking-wider text-slate-500">STORE OPERATIONS</div>
+        </div>
+      </div>
+
+      <div className="mx-3 mt-4 rounded-[10px] border border-white/10 bg-white/[0.04] px-3 py-2.5">
+        <div className="flex items-center gap-2.5">
+          <span className="grid h-8 w-8 place-items-center rounded-lg bg-white/10 text-slate-200">
+            <Icon name="store" />
+          </span>
+          <div className="min-w-0">
+            <div className="truncate text-[11px] font-semibold text-white">
+              {isMaster ? (store?.name ?? 'Master') : (store?.name ?? '—')}
+            </div>
+            <div className="truncate text-[10px] text-slate-400">
+              {isMaster ? 'Master · όλα τα καταστήματα' : (store?.code ?? 'Χωρίς κωδικό')}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <nav className="flex-1 overflow-y-auto px-3 py-2">
+        {groups.map((g) => (
+          <div key={g.title}>
+            <div className="px-3 pb-1 pt-4 text-[10px] font-bold uppercase tracking-[1.1px] text-slate-500">{g.title}</div>
+            {g.items.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                onClick={() => setOpen(false)}
+                className={({ isActive }) =>
+                  `mb-0.5 flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-[13px] font-medium transition ${
+                    isActive
+                      ? 'bg-white/10 font-semibold text-white'
+                      : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                  }`
+                }
+              >
+                <Icon name={item.icon} />
+                <span className="truncate">{item.label}</span>
+                {badgeFor(item)}
+              </NavLink>
+            ))}
+          </div>
+        ))}
+      </nav>
+
+      <div className="border-t border-white/10 p-3">
+        <div className="rounded-[10px] bg-white/[0.04] px-3 py-2.5">
+          <div className="text-[11px] font-semibold text-slate-200">Ένας χώρος για όλα</div>
+          <p className="mt-1 text-[10px] leading-relaxed text-slate-400">
+            Στόχοι, υπηρεσίες, παραγγελίες, πρόγραμμα και εργασίες σε ένα περιβάλλον.
+          </p>
+        </div>
+        <div className="mt-3 flex items-center gap-2.5 px-1">
+          <span className="grid h-9 w-9 place-items-center rounded-lg bg-slate-700 text-[11px] font-bold text-slate-100">
+            {initials(profile?.full_name)}
+          </span>
+          <div className="min-w-0">
+            <div className="truncate text-[11px] font-semibold text-white">{profile?.full_name}</div>
+            <div className="truncate text-[10px] text-slate-400">{roleLabel(profile?.role, profile?.is_primary)}</div>
+          </div>
+        </div>
+      </div>
+    </>
+  )
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-slate-100">
-      <header className="sticky top-0 z-40 w-full bg-slate-900 text-white shadow">
-        <div className="flex w-full flex-wrap items-center justify-between gap-2 px-4 py-3 sm:px-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10">
-              <Icon name="store" />
-            </div>
-            <div>
-              <div className="text-sm font-semibold leading-tight">Γερμανός Manager</div>
-              <div className="text-xs text-slate-400">
-                {isMaster ? 'Master · όλα τα καταστήματα' : (store?.name ?? '—')}
-                {!isMaster && store?.code ? ` · ${store.code}` : ''}
-              </div>
+    <div className="flex min-h-screen w-full bg-canvas">
+      {open && (
+        <div className="fixed inset-0 z-40 bg-[#0b1733]/60 sm:hidden" onClick={() => setOpen(false)} />
+      )}
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-[262px] flex-col bg-navy text-slate-300 transition-transform duration-200 ${
+          open ? 'translate-x-0' : '-translate-x-full'
+        } sm:sticky sm:top-0 sm:z-auto sm:h-screen sm:w-[255px] sm:shrink-0 sm:translate-x-0`}
+      >
+        {sidebar}
+      </aside>
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-30 flex h-[61px] items-center justify-between gap-3 border-b border-line bg-surface px-4 sm:h-[68px] sm:px-7">
+          <div className="flex min-w-0 items-center gap-3">
+            <button
+              className="grid h-9 w-9 place-items-center rounded-lg text-ink hover:bg-slate-100 sm:hidden"
+              onClick={() => setOpen(true)}
+              aria-label="Άνοιγμα μενού"
+            >
+              <Icon name="menu" className="h-5 w-5" />
+            </button>
+            <div className="truncate text-xs text-muted">
+              Κατάστημα <span className="px-1.5 text-slate-300">/</span>
+              <span className="font-semibold text-ink">{labelFor(location.pathname)}</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 sm:gap-3">
             {isMaster && stores.length > 0 && (
               <select
                 value={activeStoreId ?? ''}
                 onChange={(e) => setActiveStoreId(e.target.value)}
-                className="max-w-[46vw] rounded-lg border border-slate-600 bg-slate-800 px-2 py-1.5 text-xs text-white sm:max-w-none"
+                className="max-w-[40vw] rounded-control border border-line bg-surface px-2.5 py-2 text-xs font-medium text-ink outline-none focus:border-brand sm:max-w-none"
                 title="Ενεργό κατάστημα"
               >
                 {stores.map((s) => (
@@ -175,46 +318,27 @@ export default function Layout() {
               </select>
             )}
             <div className="hidden text-right sm:block">
-              <div className="text-xs font-medium leading-tight">{profile?.full_name}</div>
-              <div className="text-[11px] text-slate-400">
-                {roleLabel(profile?.role, profile?.is_primary)}
-              </div>
+              <div className="text-xs font-semibold leading-tight text-ink">{profile?.full_name}</div>
+              <div className="text-[10px] text-muted">{roleLabel(profile?.role, profile?.is_primary)}</div>
             </div>
+            <span className="hidden h-9 w-9 place-items-center rounded-lg bg-blue-50 text-[11px] font-bold text-brand sm:grid">
+              {initials(profile?.full_name)}
+            </span>
             <button
-              className="rounded-lg bg-slate-700 px-3 py-1.5 text-xs font-medium hover:bg-slate-600"
+              className="grid h-9 w-9 place-items-center rounded-lg border border-line text-slate-600 hover:bg-slate-50"
               onClick={async () => { await signOut(); navigate('/login') }}
+              aria-label="Έξοδος"
+              title="Έξοδος"
             >
-              Έξοδος
+              <Icon name="logout" />
             </button>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <div className="flex w-full flex-1 flex-col sm:flex-row">
-        <aside className="shrink-0 border-b border-slate-200 bg-white sm:w-56 sm:border-b-0 sm:border-r">
-          <nav className="flex gap-1 overflow-x-auto p-2 sm:flex-col sm:gap-0.5 sm:p-3">
-            {items.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) =>
-                  `flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    isActive ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'
-                  }`
-                }
-              >
-                <Icon name={item.icon} />
-                <span>{item.label}</span>
-                {item.to === '/requests' && <Badge n={pending} />}
-                {item.to === '/orders' && <Badge n={reminders} />}
-              </NavLink>
-            ))}
-          </nav>
-        </aside>
-
-        <main className="min-w-0 flex-1 p-4 sm:p-6">
-          <Outlet />
+        <main className="flex-1 p-4 sm:p-8">
+          <div className="mx-auto w-full max-w-[1690px]">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

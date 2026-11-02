@@ -1,16 +1,41 @@
 @import "tailwindcss";
 
-:root {
-  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+@theme {
+  --color-canvas: #f5f7fb;
+  --color-surface: #ffffff;
+  --color-navy: #101a2e;
+  --color-navy-2: #18253b;
+  --color-brand: #3866ed;
+  --color-brand-hover: #244dd1;
+  --color-ink: #18233a;
+  --color-muted: #788397;
+  --color-line: #e5eaf1;
+  --color-success: #159a73;
+  --color-warning: #d28a27;
+  --color-danger: #de5b65;
+  --radius-card: 13px;
+  --radius-control: 9px;
+  --font-sans: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 }
 
-body {
-  margin: 0;
-  background: #f1f5f9;
-}
-
-html, body, #root {
-  height: 100%;
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    scroll-behavior: smooth;
+  }
+  body {
+    margin: 0;
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  html, body, #root {
+    height: 100%;
+  }
+  ::selection {
+    background: rgba(56, 102, 237, 0.18);
+  }
 }
 
 #print-area {

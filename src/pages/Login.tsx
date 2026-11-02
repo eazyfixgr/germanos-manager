@@ -85,7 +85,7 @@ export default function Login() {
 
   return (
     <div className="flex min-h-screen w-full flex-col lg:flex-row">
-      <div className="flex flex-col justify-between bg-slate-900 p-8 text-white lg:w-1/2 lg:p-12">
+      <div className="flex flex-col justify-between bg-navy p-8 text-white lg:w-1/2 lg:p-12">
         <div className="text-sm font-semibold tracking-wide text-slate-300">ΓΕΡΜΑΝΟΣ MANAGER</div>
         <div className="py-10 lg:py-0">
           <h1 className="text-3xl font-bold leading-tight lg:text-4xl">
@@ -99,7 +99,7 @@ export default function Login() {
         <div className="text-xs text-slate-500">Εσωτερική εφαρμογή καταστήματος</div>
       </div>
 
-      <div className="flex flex-1 items-center justify-center bg-slate-50 p-6 lg:p-12">
+      <div className="flex flex-1 items-center justify-center bg-canvas p-6 lg:p-12">
         <div className="w-full max-w-sm">
           <div className="mb-6">
             <h2 className="text-xl font-bold text-slate-900">
