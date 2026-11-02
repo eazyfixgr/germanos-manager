@@ -30,7 +30,11 @@ export interface PlannedShift {
   end_time: string | null
   note: string | null
 }
-export interface ScheduleResult { shifts: PlannedShift[]; warnings: string[] }
+export interface ScheduleResult {
+  shifts: PlannedShift[]
+  warnings: string[]
+  fairness: { user_id: string; split_offs: number; short_offs: number }[]
+}
 
 function pad(n: number) { return String(n).padStart(2, '0') }
 function ymd(d: Date) {
@@ -66,6 +70,7 @@ export function buildSchedule(params: {
   calendar: ScheduleCalendar[]
   leaves: ScheduleLeave[]
   minStaff: number
+  initialFairness?: Record<string, { split: number; short: number }>
 }): ScheduleResult {
   const { storeId, month, employees, patterns, calendar, leaves } = params
   const minStaff = Math.max(0, params.minStaff ?? 1)
@@ -114,7 +119,15 @@ export function buildSchedule(params: {
 
   const splitOffs = new Map<string, number>()
   const shortOffs = new Map<string, number>()
-  employees.forEach((e) => { splitOffs.set(e.id, 0); shortOffs.set(e.id, 0) })
+  const monthSplit = new Map<string, number>()
+  const monthShort = new Map<string, number>()
+  employees.forEach((e) => {
+    const f = params.initialFairness?.[e.id]
+    splitOffs.set(e.id, f?.split ?? 0)
+    shortOffs.set(e.id, f?.short ?? 0)
+    monthSplit.set(e.id, 0)
+    monthShort.set(e.id, 0)
+  })
 
   const rollingOff = new Map<string, Set<string>>()
   const warnings: string[] = []
@@ -186,8 +199,13 @@ export function buildSchedule(params: {
       rollingOff.get(chosen.date)!.add(emp.id)
       slots.set(chosen.date, (slots.get(chosen.date) ?? 1) - 1)
       assignedCount.set(chosen.date, (assignedCount.get(chosen.date) ?? 0) + 1)
-      if (chosen.level === 'split') splitOffs.set(emp.id, (splitOffs.get(emp.id) ?? 0) + 1)
-      else shortOffs.set(emp.id, (shortOffs.get(emp.id) ?? 0) + 1)
+      if (chosen.level === 'split') {
+        splitOffs.set(emp.id, (splitOffs.get(emp.id) ?? 0) + 1)
+        monthSplit.set(emp.id, (monthSplit.get(emp.id) ?? 0) + 1)
+      } else {
+        shortOffs.set(emp.id, (shortOffs.get(emp.id) ?? 0) + 1)
+        monthShort.set(emp.id, (monthShort.get(emp.id) ?? 0) + 1)
+      }
     }
   }
 
@@ -217,5 +235,13 @@ export function buildSchedule(params: {
     }
   }
 
-  return { shifts, warnings }
+  return {
+    shifts,
+    warnings,
+    fairness: employees.map((e) => ({
+      user_id: e.id,
+      split_offs: monthSplit.get(e.id) ?? 0,
+      short_offs: monthShort.get(e.id) ?? 0,
+    })),
+  }
 }

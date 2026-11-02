@@ -1256,3 +1256,55 @@ drop policy if exists store_patterns_write on public.store_patterns;
 create policy store_patterns_write on public.store_patterns
   for all using (public.is_master() or (public.is_admin() and store_id = public.current_store()))
   with check (public.is_master() or (public.is_admin() and store_id = public.current_store()));
+
+-- ============================================================
+-- 13) ΔΙΚΑΙΟΣΥΝΗ ΠΡΟΓΡΑΜΜΑΤΟΣ + ΗΜΕΡΗΣΙΕΣ ΠΩΛΗΣΕΙΣ (charts)
+-- ============================================================
+
+create table if not exists public.schedule_fairness (
+  store_id uuid not null references public.stores(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  month text not null,
+  split_offs integer not null default 0,
+  short_offs integer not null default 0,
+  updated_at timestamptz not null default now(),
+  primary key (store_id, user_id, month)
+);
+
+create index if not exists idx_fairness_store on public.schedule_fairness(store_id, month);
+
+alter table public.schedule_fairness enable row level security;
+
+drop policy if exists schedule_fairness_select on public.schedule_fairness;
+create policy schedule_fairness_select on public.schedule_fairness
+  for select using (public.is_master() or store_id = public.current_store());
+
+drop policy if exists schedule_fairness_write on public.schedule_fairness;
+create policy schedule_fairness_write on public.schedule_fairness
+  for all using (public.is_master() or (public.is_admin() and store_id = public.current_store()))
+  with check (public.is_master() or (public.is_admin() and store_id = public.current_store()));
+
+-- Ημερήσια συγκεντρωτικά (τεμάχια) για γράφημα χωρίς έκθεση μεμονωμένων πωλητών
+create or replace function public.store_daily_sales(p_store uuid, p_month text)
+returns table(sales_date date, quantity numeric)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not (public.is_master() or p_store = public.current_store()) then
+    raise exception 'Δεν έχετε πρόσβαση σε αυτό το κατάστημα';
+  end if;
+
+  return query
+    select s.date as sales_date, coalesce(sum(s.quantity), 0) as quantity
+    from public.sales_entries s
+    join public.service_categories c on c.id = s.category_id
+    where s.store_id = p_store
+      and s.status = 'active'
+      and c.unit = 'count'
+      and s.date >= (p_month || '-01')::date
+      and s.date < ((p_month || '-01')::date + interval '1 month')::date
+    group by s.date
+    order by s.date;
+end;
+$$;
+revoke all on function public.store_daily_sales(uuid, text) from public;
+grant execute on function public.store_daily_sales(uuid, text) to authenticated;

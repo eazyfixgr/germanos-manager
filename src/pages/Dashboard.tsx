@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { currentMonth, fmtDate, fmtNum, monthLabel, ORDER_STATUS } from '../lib/constants'
-import { computeProjection } from '../lib/projection'
-import type { EmployeeTarget, Order, StoreTarget } from '../lib/types'
+import { computeProjection, parseFallbackDays, storeWorkingDays } from '../lib/projection'
+import type { EmployeeTarget, Order, StoreCalendarDay, StoreTarget } from '../lib/types'
 import { Button, Card, EmptyState, MetricCard, PageHeader, Spinner } from '../components/ui'
+import { SalesTrendChart, type TrendPoint } from '../components/Charts'
 
 interface MasterStats { stores: number; users: number; pending: number }
 
@@ -17,6 +18,7 @@ export default function Dashboard() {
   const [reminders, setReminders] = useState<Order[]>([])
   const [myEntries, setMyEntries] = useState<{ date: string; points: number }[]>([])
   const [myShifts, setMyShifts] = useState<{ date: string; shift_type: string }[]>([])
+  const [trend, setTrend] = useState<{ points: TrendPoint[]; target: number; actual: number; projection: number } | null>(null)
   const [masterStats, setMasterStats] = useState<MasterStats | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -40,7 +42,7 @@ export default function Dashboard() {
         const [yy, mm] = month.split('-').map(Number)
         const start = `${month}-01`
         const next = mm === 12 ? `${yy + 1}-01-01` : `${yy}-${String(mm + 1).padStart(2, '0')}-01`
-        const [st, mt, ord, rem, pe, ms] = await Promise.all([
+        const [st, mt, ord, rem, pe, ms, catRes, tgtRes, calRes, dailyRes] = await Promise.all([
           supabase.from('store_targets').select('*').eq('store_id', store.id).eq('month', month).maybeSingle(),
           isMaster
             ? Promise.resolve({ data: null })
@@ -49,6 +51,10 @@ export default function Dashboard() {
           supabase.from('orders').select('*').eq('store_id', store.id).eq('status', 'ready').lt('updated_at', cutoff).order('updated_at', { ascending: true }),
           supabase.from('point_entries').select('date, points').eq('store_id', store.id).eq('user_id', profile.id).gte('date', start).lt('date', next),
           supabase.from('shifts').select('date, shift_type').eq('store_id', store.id).eq('user_id', profile.id).gte('date', start).lt('date', next),
+          supabase.from('service_categories').select('id, unit'),
+          supabase.from('store_category_targets').select('category_id, target').eq('store_id', store.id).eq('month', month),
+          supabase.from('store_calendar').select('*').eq('store_id', store.id).gte('date', start).lt('date', next),
+          supabase.rpc('store_daily_sales', { p_store: store.id, p_month: month }),
         ])
         setStoreTarget(st.data as StoreTarget | null)
         setMyTarget((mt.data as EmployeeTarget | null) ?? null)
@@ -56,6 +62,34 @@ export default function Dashboard() {
         setReminders((rem.data as Order[]) ?? [])
         setMyEntries((pe.data as { date: string; points: number }[]) ?? [])
         setMyShifts((ms.data as { date: string; shift_type: string }[]) ?? [])
+
+        const cats = (catRes.data as { id: string; unit: string }[] | null) ?? []
+        const countIds = new Set(cats.filter((c) => c.unit === 'count').map((c) => c.id))
+        const tgtRows = (tgtRes.data as { category_id: string; target: number }[] | null) ?? []
+        const countTarget = tgtRows
+          .filter((t) => countIds.has(t.category_id))
+          .reduce((s, t) => s + Number(t.target), 0)
+        const cal = (calRes.data as StoreCalendarDay[] | null) ?? []
+        const days = storeWorkingDays(month, cal, parseFallbackDays(store.fallback_work_days))
+        const dailyMap = new Map<string, number>(
+          (((dailyRes.data as { sales_date: string; quantity: number }[] | null) ?? []))
+            .map((r) => [r.sales_date, Number(r.quantity)]),
+        )
+        const now = new Date()
+        const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+        let cumulative = 0
+        const points: TrendPoint[] = days.map((d, i) => {
+          cumulative += dailyMap.get(d) ?? 0
+          const isPast = d <= todayStr
+          const ideal = countTarget > 0 && days.length > 0 ? (countTarget * (i + 1)) / days.length : 0
+          return { label: String(Number(d.slice(8))), actual: isPast ? cumulative : null, ideal }
+        })
+        const elapsed = days.filter((d) => d <= todayStr).length
+        const actualTotal = days
+          .filter((d) => d <= todayStr)
+          .reduce((s, d) => s + (dailyMap.get(d) ?? 0), 0)
+        const projection = elapsed > 0 ? Math.round((actualTotal / elapsed) * days.length) : 0
+        setTrend({ points, target: countTarget, actual: actualTotal, projection })
       }
       setLoading(false)
     })()
@@ -135,6 +169,33 @@ export default function Dashboard() {
                   </li>
                 ))}
               </ul>
+            </Card>
+          )}
+
+          {trend && (
+            <Card>
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <h2 className="font-semibold text-ink">Πορεία πωλήσεων · τεμάχια</h2>
+                  <p className="text-xs text-muted">{monthLabel(month)} · στόχος {fmtNum(trend.target)}</p>
+                </div>
+                <Link to="/services" className="text-sm font-semibold text-brand hover:underline">Υπηρεσίες</Link>
+              </div>
+              {trend.target === 0 && trend.actual === 0 ? (
+                <EmptyState title="Δεν υπάρχουν πωλήσεις ή στόχοι" text="Όρισε στόχους κατηγοριών και καταχώρησε πωλήσεις από τις Υπηρεσίες." />
+              ) : (
+                <>
+                  <div className="mt-3 flex flex-wrap items-center gap-4 text-[11px] text-muted">
+                    <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-brand" /> Πραγματικό</span>
+                    <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 bg-slate-300" /> Στόχος</span>
+                    <span>Πραγματικό: <strong className="text-ink">{fmtNum(trend.actual)}</strong></span>
+                    <span>Projection: <strong className="text-ink">{fmtNum(trend.projection)}</strong></span>
+                  </div>
+                  <div className="mt-2">
+                    <SalesTrendChart points={trend.points} />
+                  </div>
+                </>
+              )}
             </Card>
           )}
 

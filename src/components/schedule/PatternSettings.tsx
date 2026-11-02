@@ -78,6 +78,14 @@ export default function PatternSettings({
     onSaved()
   }
 
+  async function resetFairness() {
+    if (!window.confirm('Μηδενισμός όλων των μετρητών δικαιοσύνης για το κατάστημα;')) return
+    setError(''); setSuccess('')
+    const { error } = await supabase.from('schedule_fairness').delete().eq('store_id', storeId)
+    if (error) { setError(error.message); return }
+    setSuccess('Οι μετρητές δικαιοσύνης μηδενίστηκαν.')
+  }
+
   return (
     <Modal open={open} onClose={onClose} title="Ωράριο & μοτίβα ημέρας" wide>
       <ErrorBox message={error} />
@@ -145,6 +153,16 @@ export default function PatternSettings({
         <p className="mt-1 text-[11px] text-slate-500">
           0 = επιτρέπεται να κλείσει το κατάστημα αν χρειαστεί ρεπό (π.χ. 1 υπάλληλος).
         </p>
+      </div>
+
+      <div className="mt-4 rounded-control border border-line bg-slate-50 p-3">
+        <div className="text-sm font-semibold text-ink">Δικαιοσύνη προγράμματος</div>
+        <p className="mt-1 text-xs text-slate-500">
+          Οι μετρητές «ρεπό σε σπαστά / βραχείες» διατηρούνται μεταξύ μηνών για δίκαιη κατανομή.
+        </p>
+        <Button variant="secondary" className="mt-2 !py-1 text-xs" onClick={resetFairness}>
+          Μηδενισμός μετρητών
+        </Button>
       </div>
 
       <div className="mt-4 flex justify-end gap-2">

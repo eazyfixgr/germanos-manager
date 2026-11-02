@@ -79,16 +79,27 @@ export default function Schedule() {
     if (!store || !profile) return
     if (!window.confirm(`Δημιουργία αυτόματου προγράμματος για ${monthLabel(genMonth)}; Θα αντικατασταθούν οι υπάρχουσες βάρδιες του μήνα.`)) return
     setBusy(true); setError(''); setInfo('')
-    const [patRes, calRes, lvRes, empRes] = await Promise.all([
+    const [patRes, calRes, lvRes, empRes, fairRes] = await Promise.all([
       supabase.from('store_patterns').select('*').eq('store_id', store.id),
       supabase.from('store_calendar').select('*').eq('store_id', store.id)
         .gte('date', `${genMonth}-01`).lt('date', nextMonthStr(genMonth)),
       supabase.from('leave_requests').select('*').eq('store_id', store.id),
       supabase.from('profiles').select('*').eq('store_id', store.id).eq('active', true).is('deleted_at', null),
+      supabase.from('schedule_fairness').select('user_id, month, split_offs, short_offs').eq('store_id', store.id),
     ])
-    if (patRes.error || calRes.error || lvRes.error || empRes.error) {
+    if (patRes.error || calRes.error || lvRes.error || empRes.error || fairRes.error) {
       setBusy(false); setError('Σφάλμα φόρτωσης δεδομένων.'); return
     }
+
+    const initialFairness: Record<string, { split: number; short: number }> = {}
+    ;((fairRes.data as { user_id: string; month: string; split_offs: number; short_offs: number }[] | null) ?? [])
+      .forEach((r) => {
+        if (r.month === genMonth) return
+        const cur = initialFairness[r.user_id] ?? { split: 0, short: 0 }
+        cur.split += Number(r.split_offs)
+        cur.short += Number(r.short_offs)
+        initialFairness[r.user_id] = cur
+      })
 
     const result = buildSchedule({
       storeId: store.id,
@@ -104,6 +115,7 @@ export default function Schedule() {
         user_id: l.user_id, type: l.type, start_date: l.start_date, end_date: l.end_date, status: l.status,
       })),
       minStaff: store.min_staff ?? 1,
+      initialFairness,
     })
 
     const del = await supabase.from('shifts').delete().eq('store_id', store.id)
@@ -117,6 +129,18 @@ export default function Schedule() {
       if (error) { setError(error.message); break }
       inserted += chunk.length
     }
+    const fairPayload = result.fairness.map((f) => ({
+      store_id: store.id,
+      user_id: f.user_id,
+      month: genMonth,
+      split_offs: f.split_offs,
+      short_offs: f.short_offs,
+    }))
+    await supabase.from('schedule_fairness').delete().eq('store_id', store.id).eq('month', genMonth)
+    if (fairPayload.length > 0) {
+      await supabase.from('schedule_fairness').insert(fairPayload)
+    }
+
     await logActivity('Αυτόματο πρόγραμμα', `${monthLabel(genMonth)}: ${inserted} βάρδιες`)
     setBusy(false)
     setInfo(`Δημιουργήθηκαν ${inserted} βάρδιες.` + (result.warnings.length ? ` Προειδοποιήσεις: ${result.warnings.join(' · ')}` : ''))
