@@ -65,6 +65,17 @@ create table if not exists public.employee_targets (
   unique (store_id, user_id, month)
 );
 
+create table if not exists public.point_entries (
+  id uuid primary key default gen_random_uuid(),
+  store_id uuid not null references public.stores(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  date date not null,
+  points numeric not null default 0,
+  created_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  unique (store_id, user_id, date)
+);
+
 create table if not exists public.orders (
   id uuid primary key default gen_random_uuid(),
   store_id uuid not null references public.stores(id) on delete cascade,
@@ -151,6 +162,8 @@ create index if not exists idx_profiles_store on public.profiles(store_id);
 create index if not exists idx_targets_store_month on public.employee_targets(store_id, month);
 create index if not exists idx_store_targets_month on public.store_targets(store_id, month);
 create index if not exists idx_orders_store_status on public.orders(store_id, status);
+create index if not exists idx_point_entries_store on public.point_entries(store_id, date);
+create index if not exists idx_point_entries_user on public.point_entries(user_id, date);
 create index if not exists idx_orders_product_code on public.orders(store_id, product_code);
 create index if not exists idx_order_events_order on public.order_events(order_id);
 create index if not exists idx_shifts_store_date on public.shifts(store_id, date);
@@ -612,6 +625,7 @@ alter table public.stores enable row level security;
 alter table public.profiles enable row level security;
 alter table public.store_targets enable row level security;
 alter table public.employee_targets enable row level security;
+alter table public.point_entries enable row level security;
 alter table public.orders enable row level security;
 alter table public.order_events enable row level security;
 alter table public.shifts enable row level security;
@@ -693,6 +707,39 @@ create policy employee_targets_delete on public.employee_targets
   );
 
 -- orders
+-- point_entries
+drop policy if exists point_entries_select on public.point_entries;
+create policy point_entries_select on public.point_entries
+  for select using (public.is_master() or store_id = public.current_store());
+
+drop policy if exists point_entries_insert on public.point_entries;
+create policy point_entries_insert on public.point_entries
+  for insert with check (
+    public.is_master()
+    or (store_id = public.current_store()
+        and (public.is_admin() or public.can_edit_points() or user_id = auth.uid()))
+  );
+
+drop policy if exists point_entries_update on public.point_entries;
+create policy point_entries_update on public.point_entries
+  for update using (
+    public.is_master()
+    or (store_id = public.current_store()
+        and (public.is_admin() or public.can_edit_points() or user_id = auth.uid()))
+  ) with check (
+    public.is_master()
+    or (store_id = public.current_store()
+        and (public.is_admin() or public.can_edit_points() or user_id = auth.uid()))
+  );
+
+drop policy if exists point_entries_delete on public.point_entries;
+create policy point_entries_delete on public.point_entries
+  for delete using (
+    public.is_master()
+    or (store_id = public.current_store()
+        and (public.is_admin() or public.can_edit_points() or user_id = auth.uid()))
+  );
+
 drop policy if exists orders_select on public.orders;
 create policy orders_select on public.orders
   for select using (public.is_master() or store_id = public.current_store());
@@ -799,6 +846,10 @@ begin
   end;
   begin
     alter publication supabase_realtime add table public.profiles;
+  exception when duplicate_object then null;
+  end;
+  begin
+    alter publication supabase_realtime add table public.point_entries;
   exception when duplicate_object then null;
   end;
 end $$;

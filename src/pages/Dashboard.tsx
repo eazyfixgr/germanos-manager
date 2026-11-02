@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { currentMonth, fmtDate, fmtNum, monthLabel, ORDER_STATUS } from '../lib/constants'
+import { computeProjection } from '../lib/projection'
 import type { EmployeeTarget, Order, StoreTarget } from '../lib/types'
 import { Card, Spinner } from '../components/ui'
 
@@ -14,6 +15,8 @@ export default function Dashboard() {
   const [myTarget, setMyTarget] = useState<EmployeeTarget | null>(null)
   const [orders, setOrders] = useState<Order[]>([])
   const [reminders, setReminders] = useState<Order[]>([])
+  const [myEntries, setMyEntries] = useState<{ date: string; points: number }[]>([])
+  const [myShifts, setMyShifts] = useState<{ date: string; shift_type: string }[]>([])
   const [masterStats, setMasterStats] = useState<MasterStats | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -34,24 +37,33 @@ export default function Dashboard() {
       }
 
       if (store) {
-        const [st, mt, ord, rem] = await Promise.all([
+        const [yy, mm] = month.split('-').map(Number)
+        const start = `${month}-01`
+        const next = mm === 12 ? `${yy + 1}-01-01` : `${yy}-${String(mm + 1).padStart(2, '0')}-01`
+        const [st, mt, ord, rem, pe, ms] = await Promise.all([
           supabase.from('store_targets').select('*').eq('store_id', store.id).eq('month', month).maybeSingle(),
           isMaster
             ? Promise.resolve({ data: null })
             : supabase.from('employee_targets').select('*').eq('user_id', profile.id).eq('month', month).maybeSingle(),
           supabase.from('orders').select('*').eq('store_id', store.id).order('created_at', { ascending: false }).limit(5),
           supabase.from('orders').select('*').eq('store_id', store.id).eq('status', 'ready').lt('updated_at', cutoff).order('updated_at', { ascending: true }),
+          supabase.from('point_entries').select('date, points').eq('store_id', store.id).eq('user_id', profile.id).gte('date', start).lt('date', next),
+          supabase.from('shifts').select('date, shift_type').eq('store_id', store.id).eq('user_id', profile.id).gte('date', start).lt('date', next),
         ])
         setStoreTarget(st.data as StoreTarget | null)
         setMyTarget((mt.data as EmployeeTarget | null) ?? null)
         setOrders((ord.data as Order[]) ?? [])
         setReminders((rem.data as Order[]) ?? [])
+        setMyEntries((pe.data as { date: string; points: number }[]) ?? [])
+        setMyShifts((ms.data as { date: string; shift_type: string }[]) ?? [])
       }
       setLoading(false)
     })()
   }, [profile, store, isMaster, month])
 
   if (loading) return <Spinner />
+
+  const myProj = computeProjection(myEntries, myShifts, month)
 
   const activeOrders = orders.filter((o) => !['completed', 'cancelled'].includes(o.status))
 
@@ -88,7 +100,10 @@ export default function Dashboard() {
               <Card>
                 <div className="text-sm text-slate-500">Ο προσωπικός σου στόχος</div>
                 <div className="mt-1 text-3xl font-bold text-slate-900">{fmtNum(myTarget?.points ?? 0)}</div>
-                <div className="text-xs text-slate-400">Projection: {fmtNum(myTarget?.projection ?? 0)}</div>
+                <div className="text-xs text-slate-400">
+                  Πόντοι μήνα: {fmtNum(myProj.total)} · Projection: {fmtNum(myProj.projection)}
+                  {myProj.totalWorking > 0 ? ` (${myProj.elapsed}/${myProj.totalWorking} εργάσιμες)` : ''}
+                </div>
               </Card>
             )}
           </div>
