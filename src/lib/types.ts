@@ -26,6 +26,7 @@ export interface Store {
   phone: string | null
   open_hours: string | null
   fallback_work_days: string
+  min_staff: number
   deleted_at: string | null
 }
 
@@ -82,7 +83,7 @@ export interface OrderEvent {
   created_at: string
 }
 
-export type ShiftType = 'open' | 'mid' | 'close' | 'custom' | 'repo' | 'adeia'
+export type ShiftType = 'open' | 'mid' | 'close' | 'custom' | 'repo' | 'adeia' | 'split' | 'short' | 'full'
 
 export interface Shift {
   id: string
@@ -177,6 +178,18 @@ export interface StoreCalendarDay {
   note: string | null
   open_time: string | null
   close_time: string | null
+}
+
+export type PatternLevel = 'split' | 'short' | 'full'
+
+export interface StorePattern {
+  store_id: string
+  weekday: number
+  closed: boolean
+  level: PatternLevel
+  start_time: string | null
+  end_time: string | null
+  note: string | null
 }
 
 export type TaskStatus = 'pending' | 'in_progress' | 'done'

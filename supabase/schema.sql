@@ -1224,3 +1224,35 @@ begin
   exception when duplicate_object then null;
   end;
 end $$;
+
+-- ============================================================
+-- 12) ΜΟΤΙΒΑ ΩΡΑΡΙΟΥ + ΑΥΤΟΜΑΤΟ ΠΡΟΓΡΑΜΜΑ (Phase 3b)
+-- ============================================================
+
+alter table public.stores add column if not exists min_staff integer not null default 1;
+
+create table if not exists public.store_patterns (
+  store_id uuid not null references public.stores(id) on delete cascade,
+  weekday integer not null check (weekday between 1 and 7),
+  closed boolean not null default false,
+  level text not null default 'full' check (level in ('split','short','full')),
+  start_time text,
+  end_time text,
+  note text,
+  primary key (store_id, weekday)
+);
+
+alter table public.shifts drop constraint if exists shifts_shift_type_check;
+alter table public.shifts add constraint shifts_shift_type_check
+  check (shift_type in ('open','mid','close','custom','repo','adeia','split','short','full'));
+
+alter table public.store_patterns enable row level security;
+
+drop policy if exists store_patterns_select on public.store_patterns;
+create policy store_patterns_select on public.store_patterns
+  for select using (public.is_master() or store_id = public.current_store());
+
+drop policy if exists store_patterns_write on public.store_patterns;
+create policy store_patterns_write on public.store_patterns
+  for all using (public.is_master() or (public.is_admin() and store_id = public.current_store()))
+  with check (public.is_master() or (public.is_admin() and store_id = public.current_store()));

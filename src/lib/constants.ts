@@ -28,6 +28,9 @@ export const SHIFT_TYPE: Record<ShiftType, { label: string; color: string }> = {
   custom: { label: 'Προσαρμοσμένο', color: 'bg-gray-100 text-gray-800' },
   repo: { label: 'Ρεπό', color: 'bg-red-100 text-red-800' },
   adeia: { label: 'Άδεια', color: 'bg-orange-100 text-orange-800' },
+  split: { label: 'Σπαστό', color: 'bg-indigo-100 text-indigo-800' },
+  short: { label: 'Βραχεία (έως 15:00)', color: 'bg-lime-100 text-lime-800' },
+  full: { label: 'Πλήρης', color: 'bg-sky-100 text-sky-800' },
 }
 
 export function currentMonth(): string {
