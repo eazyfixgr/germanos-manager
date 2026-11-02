@@ -178,3 +178,40 @@ export interface StoreCalendarDay {
   open_time: string | null
   close_time: string | null
 }
+
+export type TaskStatus = 'pending' | 'in_progress' | 'done'
+export type TaskRecurrence = 'daily' | 'weekly_days' | 'monthly_date' | 'every_n_days'
+
+export interface TaskTemplate {
+  id: string
+  store_id: string
+  title: string
+  category: string | null
+  recurrence: TaskRecurrence
+  weekdays: number[]
+  month_day: number | null
+  every_n: number
+  due_time: string | null
+  requires_authorized: boolean
+  active: boolean
+  created_at: string
+}
+
+export interface StoreTask {
+  id: string
+  store_id: string
+  template_id: string | null
+  title: string
+  category: string | null
+  assigned_user_id: string | null
+  scheduled_date: string
+  due_time: string | null
+  status: TaskStatus
+  requires_authorized: boolean
+  notes: string | null
+  completed_at: string | null
+  completed_by: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}

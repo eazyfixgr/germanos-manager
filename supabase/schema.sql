@@ -1094,3 +1094,133 @@ begin
   exception when duplicate_object then null;
   end;
 end $$;
+
+-- ============================================================
+-- 11) ΕΡΓΑΣΙΕΣ ΚΑΤΑΣΤΗΜΑΤΟΣ (Phase 3) — προσθετικό
+-- ============================================================
+
+create table if not exists public.task_templates (
+  id uuid primary key default gen_random_uuid(),
+  store_id uuid not null references public.stores(id) on delete cascade,
+  title text not null,
+  category text,
+  recurrence text not null default 'daily'
+    check (recurrence in ('daily','weekly_days','monthly_date','every_n_days')),
+  weekdays integer[] not null default '{}',
+  month_day integer,
+  every_n integer not null default 1,
+  due_time text,
+  requires_authorized boolean not null default false,
+  active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.store_tasks (
+  id uuid primary key default gen_random_uuid(),
+  store_id uuid not null references public.stores(id) on delete cascade,
+  template_id uuid references public.task_templates(id) on delete set null,
+  title text not null,
+  category text,
+  assigned_user_id uuid references public.profiles(id) on delete set null,
+  scheduled_date date not null,
+  due_time text,
+  status text not null default 'pending' check (status in ('pending','in_progress','done')),
+  requires_authorized boolean not null default false,
+  notes text,
+  completed_at timestamptz,
+  completed_by uuid references public.profiles(id) on delete set null,
+  created_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_store_tasks_store_date on public.store_tasks(store_id, scheduled_date);
+create index if not exists idx_store_tasks_user_date on public.store_tasks(assigned_user_id, scheduled_date);
+create index if not exists idx_task_templates_store on public.task_templates(store_id);
+
+-- Αποφυγή διπλής αυτόματης δημιουργίας ίδιου template για την ίδια ημέρα
+create unique index if not exists uniq_store_tasks_template_date
+  on public.store_tasks(store_id, template_id, scheduled_date)
+  where template_id is not null;
+
+drop trigger if exists trg_store_tasks_updated on public.store_tasks;
+create trigger trg_store_tasks_updated before update on public.store_tasks
+  for each row execute function public.touch_updated_at();
+
+create or replace function public.protect_task_fields()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then
+    return new;
+  end if;
+  if public.is_master() or (public.is_admin() and old.store_id = public.current_store()) then
+    return new;
+  end if;
+  if old.assigned_user_id = auth.uid() then
+    new.store_id := old.store_id;
+    new.template_id := old.template_id;
+    new.title := old.title;
+    new.category := old.category;
+    new.assigned_user_id := old.assigned_user_id;
+    new.scheduled_date := old.scheduled_date;
+    new.due_time := old.due_time;
+    new.requires_authorized := old.requires_authorized;
+    new.created_by := old.created_by;
+  else
+    raise exception 'Δεν έχετε δικαίωμα επεξεργασίας αυτής της εργασίας';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_protect_task on public.store_tasks;
+create trigger trg_protect_task before update on public.store_tasks
+  for each row execute function public.protect_task_fields();
+
+alter table public.task_templates enable row level security;
+alter table public.store_tasks enable row level security;
+
+drop policy if exists task_templates_select on public.task_templates;
+create policy task_templates_select on public.task_templates
+  for select using (public.is_master() or store_id = public.current_store());
+
+drop policy if exists task_templates_write on public.task_templates;
+create policy task_templates_write on public.task_templates
+  for all using (public.is_master() or (public.is_admin() and store_id = public.current_store()))
+  with check (public.is_master() or (public.is_admin() and store_id = public.current_store()));
+
+drop policy if exists store_tasks_select on public.store_tasks;
+create policy store_tasks_select on public.store_tasks
+  for select using (
+    public.is_master()
+    or (public.is_admin() and store_id = public.current_store())
+    or assigned_user_id = auth.uid()
+  );
+
+drop policy if exists store_tasks_insert on public.store_tasks;
+create policy store_tasks_insert on public.store_tasks
+  for insert with check (public.is_master() or (public.is_admin() and store_id = public.current_store()));
+
+drop policy if exists store_tasks_update on public.store_tasks;
+create policy store_tasks_update on public.store_tasks
+  for update using (
+    public.is_master()
+    or (public.is_admin() and store_id = public.current_store())
+    or assigned_user_id = auth.uid()
+  ) with check (
+    public.is_master()
+    or (public.is_admin() and store_id = public.current_store())
+    or assigned_user_id = auth.uid()
+  );
+
+drop policy if exists store_tasks_delete on public.store_tasks;
+create policy store_tasks_delete on public.store_tasks
+  for delete using (public.is_master() or (public.is_admin() and store_id = public.current_store()));
+
+do $$
+begin
+  begin
+    alter publication supabase_realtime add table public.store_tasks;
+  exception when duplicate_object then null;
+  end;
+end $$;

@@ -8,6 +8,7 @@ import Services from './pages/Services'
 import Orders from './pages/Orders'
 import OrderDetail from './pages/OrderDetail'
 import Schedule from './pages/Schedule'
+import Tasks from './pages/Tasks'
 import Requests from './pages/Requests'
 import Employees from './pages/Employees'
 import StoreSettings from './pages/StoreSettings'
@@ -76,6 +77,7 @@ export default function App() {
         <Route path="/orders" element={<Orders />} />
         <Route path="/orders/:id" element={<OrderDetail />} />
         <Route path="/schedule" element={<Schedule />} />
+        <Route path="/tasks" element={<Tasks />} />
         <Route path="/activity" element={<Activity />} />
         <Route path="/account" element={<Account />} />
         <Route path="/requests" element={<AdminOnly><Requests /></AdminOnly>} />

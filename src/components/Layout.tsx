@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 
 type IconName =
   | 'home' | 'target' | 'box' | 'calendar' | 'inbox' | 'users' | 'store'
-  | 'history' | 'shield' | 'user' | 'trash' | 'upload' | 'building' | 'layers'
+  | 'history' | 'shield' | 'user' | 'trash' | 'upload' | 'building' | 'layers' | 'check'
 
 function Icon({ name }: { name: IconName }) {
   const common = {
@@ -47,6 +47,8 @@ function Icon({ name }: { name: IconName }) {
       return <svg {...common}><path d="M12 16V4M7 8l5-4 5 4" /><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" /></svg>
     case 'layers':
       return <svg {...common}><path d="m12 3 9 5-9 5-9-5 9-5Z" /><path d="m3 13 9 5 9-5" /><path d="m3 17 9 5 9-5" /></svg>
+    case 'check':
+      return <svg {...common}><path d="m5 12 4 4L19 6" /></svg>
   }
 }
 
@@ -120,6 +122,7 @@ export default function Layout() {
     { to: '/services', label: 'Υπηρεσίες', icon: 'layers', end: false },
     { to: '/orders', label: 'Παραγγελίες', icon: 'box', end: false },
     { to: '/schedule', label: 'Πρόγραμμα', icon: 'calendar', end: false },
+    { to: '/tasks', label: 'Εργασίες', icon: 'check', end: false },
   ]
   if (isAdmin) {
     items.push(
