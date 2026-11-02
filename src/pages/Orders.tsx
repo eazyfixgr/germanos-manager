@@ -7,7 +7,7 @@ import { logActivity } from '../lib/activity'
 import { downloadCsv } from '../lib/csv'
 import { downloadXlsx } from '../lib/xlsx'
 import type { Order, OrderStatus } from '../lib/types'
-import { Badge, Button, Card, Field, Input, Modal, Select, Spinner, Textarea } from '../components/ui'
+import { Badge, Button, Card, EmptyState, Field, Input, Modal, PageHeader, Select, Spinner, Textarea } from '../components/ui'
 
 export default function Orders() {
   const { store, profile } = useAuth()
@@ -116,14 +116,18 @@ export default function Orders() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-bold text-slate-900">Παραγγελίες</h1>
-        <div className="flex items-center gap-2">
-          <Button variant="secondary" onClick={exportCsv}>Εξαγωγή CSV</Button>
-          <Button variant="secondary" onClick={exportExcel}>Εξαγωγή Excel</Button>
-          <Button onClick={() => setShowNew(true)}>Νέα παραγγελία</Button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Εξυπηρέτηση"
+        title="Παραγγελίες"
+        subtitle="Παρακολούθηση παραλαβών και ενημέρωσης πελατών"
+        actions={
+          <>
+            <Button variant="secondary" onClick={exportCsv}>Εξαγωγή CSV</Button>
+            <Button variant="secondary" onClick={exportExcel}>Εξαγωγή Excel</Button>
+            <Button onClick={() => setShowNew(true)}>Νέα παραγγελία</Button>
+          </>
+        }
+      />
 
       {overdue.length > 0 && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
@@ -147,7 +151,7 @@ export default function Orders() {
 
       <div className="space-y-2">
         {filtered.length === 0 && (
-          <Card><p className="text-sm text-slate-500">Δεν βρέθηκαν παραγγελίες.</p></Card>
+          <Card><EmptyState title="Δεν βρέθηκαν παραγγελίες" text="Δοκίμασε άλλη αναζήτηση ή δημιούργησε νέα παραγγελία." /></Card>
         )}
         {filtered.map((o) => (
           <Link key={o.id} to={`/orders/${o.id}`} className="block">

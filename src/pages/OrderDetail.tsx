@@ -6,7 +6,7 @@ import { fmtDateTime, ORDER_FLOW, ORDER_STATUS } from '../lib/constants'
 import { logActivity } from '../lib/activity'
 import { scanInvoiceFile, useScanner } from '../lib/scanner'
 import type { Order, OrderEvent, OrderStatus } from '../lib/types'
-import { Badge, Button, Card, Spinner } from '../components/ui'
+import { Badge, Button, Card, PageHeader, Spinner } from '../components/ui'
 
 const NEXT: Partial<Record<OrderStatus, OrderStatus>> = {
   new: 'ordered',
@@ -128,13 +128,12 @@ export default function OrderDetail() {
       <button className="text-sm text-slate-500 hover:underline" onClick={() => navigate('/orders')}>← Πίσω στις παραγγελίες</button>
 
       <Card>
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h1 className="text-lg font-bold text-slate-900">{order.product_name}</h1>
-            <div className="text-sm text-slate-500">Κωδικός: {order.product_code}</div>
-          </div>
-          <Badge className={ORDER_STATUS[order.status].color}>{ORDER_STATUS[order.status].label}</Badge>
-        </div>
+        <PageHeader
+          eyebrow="Παραγγελία"
+          title={order.product_name}
+          subtitle={`Κωδικός: ${order.product_code}`}
+          actions={<Badge className={ORDER_STATUS[order.status].color}>{ORDER_STATUS[order.status].label}</Badge>}
+        />
         <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
           <div><span className="text-slate-500">Πελάτης:</span> <strong>{order.customer_name}</strong></div>
           {order.customer_phone && <div><span className="text-slate-500">Τηλέφωνο:</span> <strong>{order.customer_phone}</strong></div>}

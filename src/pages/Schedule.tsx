@@ -4,7 +4,7 @@ import { useAuth } from '../lib/auth'
 import { fmtDate, SHIFT_TYPE } from '../lib/constants'
 import { logActivity } from '../lib/activity'
 import type { LeaveRequest, Profile, Shift } from '../lib/types'
-import { Badge, Button, Card, Field, Input, Modal, Select, Spinner, Textarea } from '../components/ui'
+import { Badge, Button, Card, Field, Input, Modal, PageHeader, Select, Spinner, Textarea } from '../components/ui'
 
 type Tab = 'week' | 'requests'
 
@@ -85,10 +85,12 @@ export default function Schedule() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-slate-900">Πρόγραμμα</h1>
-        <Button onClick={() => setShowReq(true)}>+ Αίτηση ρεπό/άδειας</Button>
-      </div>
+      <PageHeader
+        eyebrow="Ομάδα"
+        title="Πρόγραμμα"
+        subtitle="Βάρδιες, ρεπό και άδειες προσωπικού"
+        actions={<Button onClick={() => setShowReq(true)}>Αίτηση ρεπό/άδειας</Button>}
+      />
 
       <div className="flex rounded-lg bg-slate-200 p-1">
         <button className={`flex-1 rounded-md py-2 text-sm font-medium ${tab === 'week' ? 'bg-white shadow' : 'text-slate-600'}`} onClick={() => setTab('week')}>

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
-import { Button, Card, ErrorBox, Field, Input, SuccessBox } from '../components/ui'
+import { Button, Card, ErrorBox, Field, Input, PageHeader, SuccessBox } from '../components/ui'
 import type { Store } from '../lib/types'
 
 const emptyForm = { name: '', code: '', address: '', phone: '', open_hours: '' }
@@ -66,10 +66,12 @@ export default function Stores() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-bold text-slate-900">Καταστήματα</h1>
-        <Button variant="secondary" onClick={newStore}>Νέο κατάστημα</Button>
-      </div>
+      <PageHeader
+        eyebrow="Master"
+        title="Καταστήματα"
+        subtitle="Δημιουργία και διαχείριση όλων των καταστημάτων"
+        actions={<Button variant="secondary" onClick={newStore}>Νέο κατάστημα</Button>}
+      />
 
       <div className="grid gap-4 lg:grid-cols-[1fr_1.2fr]">
         <Card>

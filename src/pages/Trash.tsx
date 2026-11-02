@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { fmtDateTime } from '../lib/constants'
 import { logActivity } from '../lib/activity'
-import { Badge, Button, Card, Spinner } from '../components/ui'
+import { Badge, Button, Card, EmptyState, PageHeader, Spinner } from '../components/ui'
 import type { Profile } from '../lib/types'
 
 type Row = Profile & { stores: { name: string; code: string | null } | null }
@@ -63,12 +63,11 @@ export default function Trash() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold text-slate-900">Κάδος ανακύκλωσης</h1>
-      <p className="text-sm text-slate-500">Διαγραμμένοι χρήστες. Η επαναφορά τους απαιτεί εκ νέου έγκριση.</p>
+      <PageHeader eyebrow="Κάδος" title="Κάδος ανακύκλωσης" subtitle="Διαγραμμένοι χρήστες. Η επαναφορά τους απαιτεί εκ νέου έγκριση." />
 
       {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
-      {rows.length === 0 && <Card><p className="text-sm text-slate-500">Ο κάδος είναι άδειος.</p></Card>}
+      {rows.length === 0 && <Card><EmptyState title="Ο κάδος είναι άδειος" text="Δεν υπάρχουν διαγραμμένοι χρήστες." /></Card>}
 
       <div className="space-y-2">
         {rows.map((r) => (

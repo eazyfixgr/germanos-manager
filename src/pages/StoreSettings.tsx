@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
-import { Button, Card, ErrorBox, Field, Input, Spinner, SuccessBox } from '../components/ui'
+import { Button, Card, ErrorBox, Field, Input, PageHeader, Spinner, SuccessBox } from '../components/ui'
 import type { Store } from '../lib/types'
 
 export default function StoreSettings() {
@@ -79,7 +79,7 @@ export default function StoreSettings() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold text-slate-900">Στοιχεία καταστήματος</h1>
+      <PageHeader eyebrow="Κατάστημα" title="Στοιχεία καταστήματος" subtitle="Όνομα, κωδικός, στοιχεία επικοινωνίας και ωράριο" />
 
       {isMaster && stores.length > 0 && (
         <Field label="Κατάστημα (master)">

@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { fmtDateTime } from '../lib/constants'
 import type { ActivityLog } from '../lib/types'
-import { Card, Spinner } from '../components/ui'
+import { Card, EmptyState, PageHeader, Spinner } from '../components/ui'
 
 export default function Activity() {
   const { store, isMaster } = useAuth()
@@ -38,10 +38,10 @@ export default function Activity() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold text-slate-900">Ιστορικό ενεργειών</h1>
+      <PageHeader eyebrow="Ιστορικό" title="Ιστορικό ενεργειών" subtitle="Τι άλλαξε, ποιος το έκανε και πότε" />
       <Card>
         {logs.length === 0 ? (
-          <p className="text-sm text-slate-500">Δεν υπάρχουν καταγραφές.</p>
+          <EmptyState title="Δεν υπάρχουν καταγραφές" text="Οι ενέργειες θα εμφανίζονται εδώ." />
         ) : (
           <ul className="divide-y divide-slate-100">
             {logs.map((l) => (

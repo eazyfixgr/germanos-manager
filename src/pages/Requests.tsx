@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { fmtDate } from '../lib/constants'
-import { Badge, Button, Card, Spinner } from '../components/ui'
+import { Badge, Button, Card, EmptyState, PageHeader, Spinner } from '../components/ui'
 import type { Profile } from '../lib/types'
 
 type Row = Profile & { stores: { name: string; code: string | null } | null }
@@ -59,19 +59,20 @@ export default function Requests() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold text-slate-900">Αιτήσεις εγγραφής</h1>
-      <p className="text-sm text-slate-500">
-        {isMaster
+      <PageHeader
+        eyebrow="Εγκρίσεις"
+        title="Αιτήσεις εγγραφής"
+        subtitle={isMaster
           ? 'Εγκρίνετε αιτήσεις για νέα καταστήματα, υπευθύνους και υπαλλήλους.'
           : 'Εγκρίνετε αιτήσεις υπαλλήλων και υπευθύνων του καταστήματός σας.'}
-      </p>
+      />
 
       {!isAdmin && <Card><p className="text-sm text-slate-500">Δεν έχετε δικαίωμα.</p></Card>}
 
       {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
       {rows.length === 0 && (
-        <Card><p className="text-sm text-slate-500">Δεν υπάρχουν εκκρεμείς αιτήσεις.</p></Card>
+        <Card><EmptyState title="Δεν υπάρχουν εκκρεμείς αιτήσεις" text="Όταν κάποιος κάνει εγγραφή, θα εμφανιστεί εδώ." /></Card>
       )}
 
       <div className="space-y-2">

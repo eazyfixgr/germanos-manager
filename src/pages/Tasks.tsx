@@ -9,7 +9,7 @@ import {
 import type {
   Profile, StoreCalendarDay, StoreTask, TaskRecurrence, TaskTemplate,
 } from '../lib/types'
-import { Button, Card, ErrorBox, Field, Input, Modal, Select, Spinner, SuccessBox, Textarea } from '../components/ui'
+import { Button, Card, ErrorBox, Field, Input, Modal, PageHeader, Select, Spinner, SuccessBox, Textarea } from '../components/ui'
 
 interface ShiftRow { user_id: string; date: string; shift_type: string }
 interface LeaveRow { user_id: string; start_date: string; end_date: string }
@@ -250,25 +250,28 @@ export default function Tasks() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2 no-print">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">Εργασίες καταστήματος</h1>
-          <p className="text-sm text-slate-500">{monthLabel(month)} · {store.name}</p>
-        </div>
-        <div className="flex flex-wrap items-end gap-2">
-          <Field label="Μήνας">
-            <input type="month" value={month} onChange={(e) => setMonth(e.target.value)}
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-          </Field>
-          <Field label="Ημέρα">
-            <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)}
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-          </Field>
-          {isAdmin && <Button onClick={() => { setNewTask({ ...newTask, scheduled_date: selectedDate }); setNewTaskOpen(true) }}>Νέα εργασία</Button>}
-          {isAdmin && <Button variant="secondary" onClick={generate} disabled={busy}>Αυτόματο πρόγραμμα</Button>}
-          {isAdmin && <Button variant="secondary" onClick={() => setTemplatesOpen(true)}>Πρότυπα</Button>}
-          {isAdmin && <Button variant="secondary" onClick={() => window.print()}>Εκτύπωση</Button>}
-        </div>
+      <div className="no-print">
+        <PageHeader
+          eyebrow="Οργάνωση"
+          title="Εργασίες καταστήματος"
+          subtitle={`${monthLabel(month)} · ${store.name}`}
+          actions={
+            <>
+              <Field label="Μήνας">
+                <input type="month" value={month} onChange={(e) => setMonth(e.target.value)}
+                  className="h-10 rounded-control border border-line bg-surface px-3 text-sm" />
+              </Field>
+              <Field label="Ημέρα">
+                <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)}
+                  className="h-10 rounded-control border border-line bg-surface px-3 text-sm" />
+              </Field>
+              {isAdmin && <Button onClick={() => { setNewTask({ ...newTask, scheduled_date: selectedDate }); setNewTaskOpen(true) }}>Νέα εργασία</Button>}
+              {isAdmin && <Button variant="secondary" onClick={generate} disabled={busy}>Αυτόματο πρόγραμμα</Button>}
+              {isAdmin && <Button variant="secondary" onClick={() => setTemplatesOpen(true)}>Πρότυπα</Button>}
+              {isAdmin && <Button variant="secondary" onClick={() => window.print()}>Εκτύπωση</Button>}
+            </>
+          }
+        />
       </div>
 
       <div className="no-print">

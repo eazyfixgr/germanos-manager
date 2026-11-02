@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
-import { Button, Card, ErrorBox, Field, Input, SuccessBox } from '../components/ui'
+import { Button, Card, ErrorBox, Field, Input, PageHeader, SuccessBox } from '../components/ui'
 
 interface AllowRow { email: string; note: string | null }
 
@@ -63,7 +63,7 @@ export default function Security() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold text-slate-900">Ασφάλεια master</h1>
+      <PageHeader eyebrow="Master" title="Ασφάλεια master" subtitle="Έλεγχος ποιοι λογαριασμοί μπορούν να έχουν ρόλο master" />
 
       <Card>
         <h2 className="font-semibold text-slate-900">Master allowlist</h2>

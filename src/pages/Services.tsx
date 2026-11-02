@@ -9,7 +9,7 @@ import type {
   Profile, SalesEntry, SellerCategoryTarget, ServiceCategory, StoreCalendarDay,
   StoreCategory, StoreCategoryTarget,
 } from '../lib/types'
-import { Button, Card, ErrorBox, Field, Input, Select, Spinner, SuccessBox } from '../components/ui'
+import { Button, Card, ErrorBox, Field, Input, MetricCard, PageHeader, Select, Spinner, SuccessBox } from '../components/ui'
 import { downloadXlsx } from '../lib/xlsx'
 import CategorySettings from '../components/services/CategorySettings'
 import CalendarSettings from '../components/services/CalendarSettings'
@@ -293,51 +293,51 @@ export default function Services() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">Υπηρεσίες</h1>
-          <p className="text-sm text-slate-500">{monthLabel(month)} · {store.name}</p>
-        </div>
-        <div className="flex flex-wrap items-end gap-2">
-          <Field label="Μήνας">
-            <input type="month" value={month} onChange={(e) => setMonth(e.target.value)}
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-          </Field>
-          {isAdmin && (
-            <Field label="Πωλητής">
-              <Select value={selectedSeller} onChange={(e) => setSelectedSeller(e.target.value)} className="min-w-44">
-                {employees.map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}
-              </Select>
+      <PageHeader
+        eyebrow="Απόδοση"
+        title="Υπηρεσίες"
+        subtitle={`${monthLabel(month)} · ${store.name}`}
+        actions={
+          <>
+            <Field label="Μήνας">
+              <input type="month" value={month} onChange={(e) => setMonth(e.target.value)}
+                className="h-10 rounded-control border border-line bg-surface px-3 text-sm" />
             </Field>
-          )}
-          {isAdmin && <Button variant="secondary" onClick={() => setCatOpen(true)}>Κατηγορίες</Button>}
-          {isAdmin && <Button variant="secondary" onClick={() => setCalOpen(true)}>Ημερολόγιο</Button>}
-          <Button variant="secondary" onClick={exportExcel}>Εξαγωγή Excel</Button>
-          <Button variant="secondary" onClick={() => window.print()}>Εκτύπωση / PDF</Button>
-        </div>
-      </div>
+            {isAdmin && (
+              <Field label="Πωλητής">
+                <Select value={selectedSeller} onChange={(e) => setSelectedSeller(e.target.value)} className="min-w-44">
+                  {employees.map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}
+                </Select>
+              </Field>
+            )}
+            {isAdmin && <Button variant="secondary" onClick={() => setCatOpen(true)}>Κατηγορίες</Button>}
+            {isAdmin && <Button variant="secondary" onClick={() => setCalOpen(true)}>Ημερολόγιο</Button>}
+            <Button variant="secondary" onClick={exportExcel}>Εξαγωγή Excel</Button>
+            <Button variant="secondary" onClick={() => window.print()}>Εκτύπωση / PDF</Button>
+          </>
+        }
+      />
 
       <ErrorBox message={error} />
       <SuccessBox message={success} />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <div className="text-sm text-slate-500">Στόχος τεμαχίων</div>
-          <div className="mt-1 text-2xl font-bold text-slate-900">{fmtNum(countTarget)}</div>
-        </Card>
-        <Card>
-          <div className="text-sm text-slate-500">Πωλήσεις τεμαχίων</div>
-          <div className="mt-1 text-2xl font-bold text-slate-900">{fmtNum(countProgress)}</div>
-        </Card>
-        <Card>
-          <div className="text-sm text-slate-500">Επίτευξη</div>
-          <div className="mt-1 text-2xl font-bold text-slate-900">{fmtPct(countAchievement)}</div>
-        </Card>
-        <Card>
-          <div className="text-sm text-slate-500">Τζίρος (πρόοδος / στόχος)</div>
-          <div className="mt-1 text-2xl font-bold text-slate-900">{fmtVal(currencyProgress, 'currency')}</div>
-          <div className="text-xs text-slate-400">στόχος: {fmtVal(currencyTarget, 'currency')}</div>
-        </Card>
+        <MetricCard label="Στόχος τεμαχίων" value={fmtNum(countTarget)} detail="για τον μήνα" />
+        <MetricCard
+          label="Πωλήσεις τεμαχίων"
+          value={fmtNum(countProgress)}
+          detail="σύνολο καταστήματος"
+          accent="green"
+          progress={countTarget > 0 ? (countProgress / countTarget) * 100 : 0}
+        />
+        <MetricCard label="Επίτευξη" value={fmtPct(countAchievement)} detail="ποσοστό στόχου" accent="purple" />
+        <MetricCard
+          label="Τζίρος (πρόοδος)"
+          value={fmtVal(currencyProgress, 'currency')}
+          detail={`στόχος: ${fmtVal(currencyTarget, 'currency')}`}
+          accent="amber"
+          progress={currencyTarget > 0 ? (currencyProgress / currencyTarget) * 100 : 0}
+        />
       </div>
 
       <p className="text-xs text-slate-500">

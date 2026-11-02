@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { fmtDate } from '../lib/constants'
 import { logActivity } from '../lib/activity'
-import { Badge, Button, Card, Spinner } from '../components/ui'
+import { Badge, Button, Card, EmptyState, PageHeader, Spinner } from '../components/ui'
 import type { Profile } from '../lib/types'
 
 type Row = Profile & { stores: { name: string; code: string | null } | null }
@@ -102,10 +102,12 @@ export default function Employees() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-bold text-slate-900">Προσωπικό</h1>
-        {isMaster && <Badge className="bg-slate-900 text-white">Προβολή όλων των καταστημάτων</Badge>}
-      </div>
+      <PageHeader
+        eyebrow="Ομάδα"
+        title="Προσωπικό"
+        subtitle="Ρόλοι, εγκρίσεις και ιδιότητα πωλητή"
+        actions={isMaster ? <Badge className="bg-slate-900 text-white">Προβολή όλων των καταστημάτων</Badge> : undefined}
+      />
 
       {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
@@ -177,7 +179,7 @@ export default function Employees() {
             </div>
           </Card>
         ))}
-        {rows.length === 0 && <Card><p className="text-sm text-slate-500">Δεν υπάρχουν χρήστες.</p></Card>}
+        {rows.length === 0 && <Card><EmptyState title="Δεν υπάρχουν χρήστες" text="Οι νέες εγγραφές θα εμφανίζονται εδώ." /></Card>}
       </div>
     </div>
   )

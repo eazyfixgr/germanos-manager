@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
-import { Button, Card, ErrorBox, Field, Input, SuccessBox } from '../components/ui'
+import { Button, Card, ErrorBox, Field, Input, PageHeader, SuccessBox } from '../components/ui'
 
 export default function Account() {
   const { profile, refreshProfile } = useAuth()
@@ -47,7 +47,7 @@ export default function Account() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold text-slate-900">Λογαριασμός</h1>
+      <PageHeader eyebrow="Λογαριασμός" title="Στοιχεία λογαριασμού" subtitle="Προσωπικά στοιχεία και ασφάλεια πρόσβασης" />
 
       <Card>
         <h2 className="font-semibold text-slate-900">Στοιχεία</h2>

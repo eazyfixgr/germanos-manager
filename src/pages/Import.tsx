@@ -6,7 +6,7 @@ import { downloadXlsx, readWorkbook, type WorkbookReader } from '../lib/xlsx'
 import { monthOf, normEmail, normText, parseDateFlexible, toNumber } from '../lib/normalize'
 import { logActivity } from '../lib/activity'
 import type { Profile, ServiceCategory } from '../lib/types'
-import { Button, Card, ErrorBox, Field, Input, Select, SuccessBox } from '../components/ui'
+import { Button, Card, ErrorBox, Field, Input, PageHeader, Select, SuccessBox } from '../components/ui'
 
 type ImportType = 'store_targets' | 'seller_targets' | 'sales' | 'orders' | 'points_targets'
 
@@ -399,7 +399,7 @@ export default function Import() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold text-slate-900">Εισαγωγή δεδομένων</h1>
+      <PageHeader eyebrow="Δεδομένα" title="Εισαγωγή δεδομένων" subtitle="Μεταφορά στόχων, πωλήσεων και παραγγελιών από Excel/CSV" />
 
       <Card>
         <div className="grid gap-3 sm:grid-cols-2">

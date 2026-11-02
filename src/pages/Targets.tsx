@@ -6,7 +6,7 @@ import { computeProjection } from '../lib/projection'
 import { downloadCsv } from '../lib/csv'
 import { logActivity } from '../lib/activity'
 import type { EmployeeTarget, Profile, StoreTarget } from '../lib/types'
-import { Button, Card, Field, Input, Modal, Spinner } from '../components/ui'
+import { Button, Card, Field, Input, Modal, PageHeader, Spinner } from '../components/ui'
 
 interface PointRow { id: string; user_id: string; date: string; points: number }
 interface ShiftRow { user_id: string; date: string; shift_type: string }
@@ -170,21 +170,24 @@ export default function Targets() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-bold text-slate-900">Στόχοι</h1>
-        <div className="flex items-end gap-2">
-          <Field label="Μήνας">
-            <input
-              type="month"
-              value={month}
-              onChange={(e) => setMonth(e.target.value)}
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            />
-          </Field>
-          <Button variant="secondary" onClick={exportCsv}>Εξαγωγή CSV</Button>
-        </div>
-      </div>
-      <p className="text-sm text-slate-500">{monthLabel(month)}</p>
+      <PageHeader
+        eyebrow="Απόδοση"
+        title="Στόχοι"
+        subtitle={monthLabel(month)}
+        actions={
+          <>
+            <Field label="Μήνας">
+              <input
+                type="month"
+                value={month}
+                onChange={(e) => setMonth(e.target.value)}
+                className="h-10 rounded-control border border-line bg-surface px-3 text-sm"
+              />
+            </Field>
+            <Button variant="secondary" onClick={exportCsv}>Εξαγωγή CSV</Button>
+          </>
+        }
+      />
 
       <Card>
         <h2 className="font-semibold text-slate-900">Στόχος καταστήματος (πόντοι)</h2>
