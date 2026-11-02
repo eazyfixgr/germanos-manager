@@ -147,7 +147,10 @@ export default function Services() {
       .sort((a, b) => a.sort - b.sort)
   }, [categories, storeCats])
 
-  const fallbackDays = parseFallbackDays(store?.fallback_work_days)
+  const fallbackDays = useMemo(
+    () => parseFallbackDays(store?.fallback_work_days),
+    [store?.fallback_work_days],
+  )
   const storeDays = useMemo(() => storeWorkingDays(month, calendar, fallbackDays), [month, calendar, fallbackDays])
   const sellerDays = useMemo(() => workingDays(month, shifts, fallbackDays), [month, shifts, fallbackDays])
 
