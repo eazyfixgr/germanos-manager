@@ -12,6 +12,8 @@ export interface Profile {
   is_primary: boolean
   deleted_at: string | null
   deleted_by: string | null
+  pending_store_name: string | null
+  pending_store_code: string | null
   created_at: string
 }
 

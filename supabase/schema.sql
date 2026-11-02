@@ -132,6 +132,8 @@ alter table public.stores add column if not exists code text;
 alter table public.profiles add column if not exists is_primary boolean not null default false;
 alter table public.profiles add column if not exists deleted_at timestamptz;
 alter table public.profiles add column if not exists deleted_by uuid;
+alter table public.profiles add column if not exists pending_store_name text;
+alter table public.profiles add column if not exists pending_store_code text;
 alter table public.stores add column if not exists deleted_at timestamptz;
 
 alter table public.profiles drop constraint if exists profiles_role_check;
@@ -256,12 +258,11 @@ begin
   new.store_id := old.store_id;
 
   if not public.is_primary_admin() then
-    -- Απλός admin: δεν αλλάζει ρόλους, δεν διαχειρίζεται άλλους admins,
-    -- δεν ορίζει primary.
+    -- Απλός admin: δεν αλλάζει ρόλους, δεν ορίζει primary, δεν αλλάζει
+    -- δικαίωμα πόντων άλλου admin. Η ενεργοποίηση επιτρέπεται (για εγκρίσεις).
     new.role := old.role;
     new.is_primary := old.is_primary;
     if old.role = 'admin' then
-      new.active := old.active;
       new.can_edit_points := old.can_edit_points;
     end if;
   end if;
@@ -326,13 +327,13 @@ begin
 
   else
     if s_id is not null then
-      -- Υπάρχον κατάστημα: αίτηση υπευθύνου -> αναμονή έγκρισης από κύριο υπεύθυνο
+      -- Υπάρχον κατάστημα: αίτηση υπευθύνου -> αναμονή έγκρισης από admin του καταστήματος
       insert into public.profiles (id, full_name, role, store_id, email, active, can_edit_points, is_primary)
       values (new.id, coalesce(nullif(new.raw_user_meta_data->>'full_name',''), new.email),
               'admin', s_id, new.email, false, false, false)
       on conflict (id) do nothing;
     else
-      -- Νέο κατάστημα: απαιτείται όνομα + κωδικός
+      -- Νέο κατάστημα: απαιτείται όνομα + κωδικός -> αναμονή έγκρισης από MASTER
       if v_name is null then
         raise exception 'STORE_NAME_REQUIRED';
       end if;
@@ -340,11 +341,10 @@ begin
         raise exception 'STORE_CODE_REQUIRED';
       end if;
 
-      insert into public.stores (name, code) values (v_name, v_code) returning id into s_id;
-
-      insert into public.profiles (id, full_name, role, store_id, email, active, can_edit_points, is_primary)
+      insert into public.profiles
+        (id, full_name, role, store_id, email, active, can_edit_points, is_primary, pending_store_name, pending_store_code)
       values (new.id, coalesce(nullif(new.raw_user_meta_data->>'full_name',''), new.email),
-              'admin', s_id, new.email, true, false, true)
+              'admin', null, new.email, false, false, true, v_name, upper(v_code))
       on conflict (id) do nothing;
     end if;
   end if;
@@ -396,26 +396,45 @@ returns void language plpgsql security definer set search_path = public as $$
 declare
   tr text;
   ts uuid;
+  pn text;
+  pc text;
+  s_id uuid;
 begin
+  select role, store_id, pending_store_name, pending_store_code
+    into tr, ts, pn, pc
+    from public.profiles
+   where id = target and deleted_at is null;
+
+  if tr is null then
+    raise exception 'Ο χρήστης δεν βρέθηκε';
+  end if;
+
   if not public.is_master() then
-    select role, store_id into tr, ts from public.profiles where id = target;
-    if tr is null then
-      raise exception 'Ο χρήστης δεν βρέθηκε';
+    -- Νέο κατάστημα (χωρίς store_id) εγκρίνεται ΜΟΝΟ από master
+    if ts is null then
+      raise exception 'Νέο κατάστημα: απαιτείται έγκριση από master';
     end if;
     if ts is distinct from public.current_store() then
       raise exception 'Δεν έχετε πρόσβαση σε αυτό το κατάστημα';
     end if;
-    if tr = 'admin' then
-      if not public.is_primary_admin() then
-        raise exception 'Μόνο ο κύριος υπεύθυνος εγκρίνει υπευθύνους';
-      end if;
-    elsif tr = 'user' then
-      if not public.is_admin() then
-        raise exception 'Δεν έχετε δικαίωμα έγκρισης';
-      end if;
-    else
-      raise exception 'Δεν επιτρέπεται';
+    if not public.is_admin() then
+      raise exception 'Δεν έχετε δικαίωμα έγκρισης';
     end if;
+  end if;
+
+  -- Αν είναι αίτημα νέου καταστήματος, δημιούργησέ το τώρα
+  if ts is null and pc is not null then
+    select id into s_id from public.stores
+     where code is not null and upper(code) = upper(pc)
+     limit 1;
+    if s_id is null then
+      insert into public.stores (name, code)
+      values (coalesce(pn, 'Κατάστημα'), upper(pc))
+      returning id into s_id;
+    end if;
+    update public.profiles
+       set store_id = s_id, pending_store_name = null, pending_store_code = null
+     where id = target;
   end if;
 
   update public.profiles set active = true where id = target and active = false;
@@ -423,6 +442,38 @@ end;
 $$;
 revoke all on function public.approve_user(uuid) from public;
 grant execute on function public.approve_user(uuid) to authenticated;
+
+create or replace function public.reject_request(target uuid)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  tr text;
+  ts uuid;
+begin
+  select role, store_id into tr, ts
+    from public.profiles
+   where id = target and active = false and deleted_at is null;
+
+  if tr is null then
+    return;
+  end if;
+
+  if not public.is_master() then
+    if ts is null then
+      raise exception 'Νέο κατάστημα: απαιτείται master';
+    end if;
+    if ts is distinct from public.current_store() then
+      raise exception 'Δεν έχετε πρόσβαση σε αυτό το κατάστημα';
+    end if;
+    if not public.is_admin() then
+      raise exception 'Δεν έχετε δικαίωμα';
+    end if;
+  end if;
+
+  delete from auth.users where id = target;  -- cascade -> profiles
+end;
+$$;
+revoke all on function public.reject_request(uuid) from public;
+grant execute on function public.reject_request(uuid) to authenticated;
 
 create or replace function public.delete_user(target uuid)
 returns void language plpgsql security definer set search_path = public as $$

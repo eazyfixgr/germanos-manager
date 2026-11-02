@@ -15,7 +15,7 @@ function roleText(role: string, primary: boolean) {
 }
 
 export default function Employees() {
-  const { profile, store, isAdmin, isPrimary, isMaster } = useAuth()
+  const { profile, store, isAdmin, isPrimary, isMaster, refreshProfile } = useAuth()
   const [rows, setRows] = useState<Row[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -36,11 +36,10 @@ export default function Employees() {
 
   const sameStore = (r: Row) => isMaster || r.store_id === store?.id
 
-  const canApprove = (r: Row) =>
-    !r.active && sameStore(r) && (r.role === 'admin' ? isPrimary : isAdmin)
+  const canApprove = (r: Row) => !r.active && sameStore(r) && isAdmin
 
   const canDelete = (r: Row) =>
-    r.id !== profile?.id && r.role !== 'master' && sameStore(r) &&
+    r.active && r.id !== profile?.id && r.role !== 'master' && sameStore(r) &&
     (r.role === 'admin' ? isPrimary : isAdmin)
 
   const canChangeRole = (r: Row) =>
@@ -60,8 +59,9 @@ export default function Employees() {
     await load()
   }
 
-  function approve(r: Row) {
-    return run(() => supabase.rpc('approve_user', { target: r.id }), `Έγκριση χρήστη: ${r.full_name}`)
+  async function approve(r: Row) {
+    await run(() => supabase.rpc('approve_user', { target: r.id }), `Έγκριση χρήστη: ${r.full_name}`)
+    await refreshProfile()
   }
 
   function remove(r: Row) {
@@ -114,7 +114,11 @@ export default function Employees() {
                 <div className="text-xs text-slate-500">{r.email} · Εγγραφή: {fmtDate(r.created_at)}</div>
                 {isMaster && (
                   <div className="mt-1 text-xs text-slate-500">
-                    {r.stores?.name ?? '—'}{r.stores?.code ? ` · ${r.stores.code}` : ''}
+                    {r.stores
+                      ? `${r.stores.name}${r.stores.code ? ` · ${r.stores.code}` : ''}`
+                      : r.pending_store_code
+                        ? `Νέο κατάστημα: ${r.pending_store_name ?? '—'} (${r.pending_store_code})`
+                        : '—'}
                   </div>
                 )}
               </div>

@@ -73,7 +73,7 @@ function Badge({ n }: { n: number }) {
 export default function Layout() {
   const {
     profile, store, stores, activeStoreId, setActiveStoreId,
-    isAdmin, isPrimary, isMaster, signOut,
+    isAdmin, isMaster, signOut,
   } = useAuth()
   const navigate = useNavigate()
   const [pending, setPending] = useState(0)
@@ -83,10 +83,9 @@ export default function Layout() {
     if (!isAdmin) return
     let cancelled = false
     async function load() {
-      let q = supabase.from('profiles').select('*', { count: 'exact', head: true })
+      const { count } = await supabase.from('profiles')
+        .select('*', { count: 'exact', head: true })
         .eq('active', false).is('deleted_at', null)
-      if (!isPrimary) q = q.eq('role', 'user')
-      const { count } = await q
       if (!cancelled) setPending(count ?? 0)
     }
     load()
@@ -94,7 +93,7 @@ export default function Layout() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, load)
       .subscribe()
     return () => { cancelled = true; supabase.removeChannel(ch) }
-  }, [isAdmin, isPrimary])
+  }, [isAdmin])
 
   useEffect(() => {
     if (!store) { setReminders(0); return }
