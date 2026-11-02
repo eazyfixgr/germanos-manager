@@ -10,6 +10,7 @@ import type {
   StoreCategory, StoreCategoryTarget,
 } from '../lib/types'
 import { Button, Card, ErrorBox, Field, Input, Select, Spinner, SuccessBox } from '../components/ui'
+import { downloadXlsx } from '../lib/xlsx'
 import CategorySettings from '../components/services/CategorySettings'
 import CalendarSettings from '../components/services/CalendarSettings'
 
@@ -244,6 +245,43 @@ export default function Services() {
     await load()
   }
 
+  function exportExcel() {
+    const now = new Date()
+    const storeRows = visible.map((c) => {
+      const target = storeTargetFor(c.id)
+      const progress = storeProgress(c.id)
+      const s = calcCategoryStats(progress, target, storeDays, now, c.unit)
+      return [
+        c.name, c.unit === 'currency' ? 'Ευρώ' : 'Τεμάχια', target, progress,
+        s.achievement == null ? '' : Number(s.achievement.toFixed(1)),
+        s.projection ?? '', s.deviation ?? '', s.requiredDaily ?? '',
+      ]
+    })
+    const sellerRows = visible.map((c) => {
+      const target = sellerTargetFor(c.id)
+      const progress = sellerProgress(c.id)
+      const s = calcCategoryStats(progress, target, sellerDays, now, c.unit)
+      return [
+        c.name, c.unit === 'currency' ? 'Ευρώ' : 'Τεμάχια', target, progress,
+        s.projection ?? '', s.achievement == null ? '' : Number(s.achievement.toFixed(1)),
+      ]
+    })
+    const sheets = [
+      { name: 'Κατάστημα', headers: ['Κατηγορία', 'Μονάδα', 'Στόχος', 'Πρόοδος', 'Επίτευξη %', 'Projection', 'Απόκλιση', 'Ημερήσια ανάγκη'], rows: storeRows },
+      { name: 'Πωλητής', headers: ['Κατηγορία', 'Μονάδα', 'Στόχος', 'Πρόοδος', 'Projection', 'Επίτευξη %'], rows: sellerRows },
+    ]
+    if (isAdmin) {
+      sheets.push({
+        name: 'Σύγκριση',
+        headers: ['Πωλητής', 'Στόχος τεμ.', 'Πωλήσεις τεμ.', 'Επίτευξη %', 'Στόχος τζίρος', 'Τζίρος'],
+        rows: comparison.map((r) => [
+          r.e.full_name, r.cT, r.cS, r.cAch == null ? '' : Number(r.cAch.toFixed(1)), r.curT, r.curS,
+        ]),
+      })
+    }
+    downloadXlsx(`ypiresies-${month}.xlsx`, sheets)
+  }
+
   if (loading) return <Spinner />
 
   if (!store) {
@@ -251,6 +289,7 @@ export default function Services() {
   }
 
   const today = new Date()
+  const cellStyle = { border: '1px solid #cbd5e1', padding: 4 } as const
 
   return (
     <div className="space-y-4">
@@ -273,6 +312,8 @@ export default function Services() {
           )}
           {isAdmin && <Button variant="secondary" onClick={() => setCatOpen(true)}>Κατηγορίες</Button>}
           {isAdmin && <Button variant="secondary" onClick={() => setCalOpen(true)}>Ημερολόγιο</Button>}
+          <Button variant="secondary" onClick={exportExcel}>Εξαγωγή Excel</Button>
+          <Button variant="secondary" onClick={() => window.print()}>Εκτύπωση / PDF</Button>
         </div>
       </div>
 
@@ -479,6 +520,73 @@ export default function Services() {
           </div>
         </Card>
       )}
+
+      <div id="print-area">
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ fontSize: 18, fontWeight: 700 }}>{store.name} — Υπηρεσίες</div>
+          <div style={{ fontSize: 12 }}>{monthLabel(month)}{store.code ? ` · ${store.code}` : ''}</div>
+        </div>
+
+        <div style={{ fontSize: 13, fontWeight: 700, margin: '8px 0' }}>Στόχοι καταστήματος</div>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10 }}>
+          <thead>
+            <tr style={{ background: '#f1f5f9', textAlign: 'left' }}>
+              {['Κατηγορία', 'Μονάδα', 'Στόχος', 'Πρόοδος', 'Επίτευξη %', 'Projection', 'Απόκλιση', 'Ημερήσια ανάγκη'].map((h) => (
+                <th key={h} style={cellStyle}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {visible.map((c) => {
+              const target = storeTargetFor(c.id)
+              const progress = storeProgress(c.id)
+              const s = calcCategoryStats(progress, target, storeDays, today, c.unit)
+              return (
+                <tr key={c.id}>
+                  <td style={cellStyle}>{c.name}</td>
+                  <td style={cellStyle}>{c.unit === 'currency' ? 'Ευρώ' : 'Τεμάχια'}</td>
+                  <td style={cellStyle}>{fmtVal(target, c.unit)}</td>
+                  <td style={cellStyle}>{fmtVal(progress, c.unit)}</td>
+                  <td style={cellStyle}>{fmtPct(s.achievement)}</td>
+                  <td style={cellStyle}>{s.projection == null ? 'Μη διαθέσιμη' : fmtVal(s.projection, c.unit)}</td>
+                  <td style={cellStyle}>{s.deviation == null ? '—' : fmtVal(s.deviation, c.unit)}</td>
+                  <td style={cellStyle}>{s.requiredDaily == null ? '—' : fmtVal(s.requiredDaily, c.unit)}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+
+        <div style={{ fontSize: 13, fontWeight: 700, margin: '12px 0 8px' }}>
+          Απόδοση πωλητή — {employees.find((e) => e.id === sellerId)?.full_name ?? ''}
+        </div>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10 }}>
+          <thead>
+            <tr style={{ background: '#f1f5f9', textAlign: 'left' }}>
+              {['Κατηγορία', 'Μονάδα', 'Στόχος', 'Πρόοδος', 'Projection', 'Επίτευξη %'].map((h) => (
+                <th key={h} style={cellStyle}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {visible.map((c) => {
+              const target = sellerTargetFor(c.id)
+              const progress = sellerProgress(c.id)
+              const s = calcCategoryStats(progress, target, sellerDays, today, c.unit)
+              return (
+                <tr key={c.id}>
+                  <td style={cellStyle}>{c.name}</td>
+                  <td style={cellStyle}>{c.unit === 'currency' ? 'Ευρώ' : 'Τεμάχια'}</td>
+                  <td style={cellStyle}>{fmtVal(target, c.unit)}</td>
+                  <td style={cellStyle}>{fmtVal(progress, c.unit)}</td>
+                  <td style={cellStyle}>{s.projection == null ? 'Μη διαθέσιμη' : fmtVal(s.projection, c.unit)}</td>
+                  <td style={cellStyle}>{fmtPct(s.achievement)}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
 
       <CategorySettings
         open={catOpen}

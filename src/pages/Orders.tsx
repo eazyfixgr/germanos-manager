@@ -5,6 +5,7 @@ import { useAuth } from '../lib/auth'
 import { fmtDate, fmtDateTime, ORDER_STATUS } from '../lib/constants'
 import { logActivity } from '../lib/activity'
 import { downloadCsv } from '../lib/csv'
+import { downloadXlsx } from '../lib/xlsx'
 import type { Order, OrderStatus } from '../lib/types'
 import { Badge, Button, Card, Field, Input, Modal, Select, Spinner, Textarea } from '../components/ui'
 
@@ -76,6 +77,18 @@ export default function Orders() {
     )
   }
 
+  function exportExcel() {
+    const rows = filtered.map((o) => [
+      o.product_code, o.product_name, o.customer_name, o.customer_phone ?? '',
+      ORDER_STATUS[o.status].label, fmtDateTime(o.created_at),
+    ])
+    downloadXlsx(`paraggelies-${new Date().toISOString().slice(0, 10)}.xlsx`, [{
+      name: 'Παραγγελίες',
+      headers: ['Κωδικός', 'Προϊόν', 'Πελάτης', 'Τηλέφωνο', 'Κατάσταση', 'Δημιουργία'],
+      rows,
+    }])
+  }
+
   async function createOrder(e: React.FormEvent) {
     e.preventDefault()
     setError('')
@@ -107,6 +120,7 @@ export default function Orders() {
         <h1 className="text-xl font-bold text-slate-900">Παραγγελίες</h1>
         <div className="flex items-center gap-2">
           <Button variant="secondary" onClick={exportCsv}>Εξαγωγή CSV</Button>
+          <Button variant="secondary" onClick={exportExcel}>Εξαγωγή Excel</Button>
           <Button onClick={() => setShowNew(true)}>Νέα παραγγελία</Button>
         </div>
       </div>
