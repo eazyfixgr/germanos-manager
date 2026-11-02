@@ -859,3 +859,238 @@ end $$;
 -- Ο master δεν ανήκει σε κατάστημα και ορίζεται από το master_allowlist.
 -- ------------------------------------------------------------
 update public.profiles set store_id = null where role = 'master';
+
+-- ============================================================
+-- 10) ΥΠΗΡΕΣΙΕΣ / ΠΩΛΗΣΕΙΣ / ΗΜΕΡΟΛΟΓΙΟ (Phase 1) — προσθετικό
+-- ============================================================
+
+alter table public.profiles add column if not exists is_seller boolean not null default true;
+alter table public.stores add column if not exists fallback_work_days text not null default '1,2,3,4,5,6';
+
+create table if not exists public.service_categories (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  unit text not null default 'count' check (unit in ('count','currency')),
+  active boolean not null default true,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+insert into public.service_categories (name, unit, sort_order) values
+  ('Κινητή', 'count', 10),
+  ('Broadband', 'count', 20),
+  ('CD Fixed', 'count', 30),
+  ('OTE TV', 'count', 40),
+  ('CD Mob', 'count', 50),
+  ('Business Κινητής', 'count', 60),
+  ('Πρώτη Ανανέωση', 'count', 70),
+  ('FTTH', 'count', 80),
+  ('Φορητότητα Κινητής', 'count', 90),
+  ('Φορητότητα Σταθερής', 'count', 100),
+  ('Protergia', 'count', 110),
+  ('Payzy Pro', 'count', 120),
+  ('Τζίρος', 'currency', 130)
+on conflict (name) do nothing;
+
+create table if not exists public.store_categories (
+  store_id uuid not null references public.stores(id) on delete cascade,
+  category_id uuid not null references public.service_categories(id) on delete cascade,
+  active boolean not null default true,
+  sort_order integer,
+  primary key (store_id, category_id)
+);
+
+create table if not exists public.store_category_targets (
+  id uuid primary key default gen_random_uuid(),
+  store_id uuid not null references public.stores(id) on delete cascade,
+  category_id uuid not null references public.service_categories(id) on delete cascade,
+  month text not null,
+  target numeric not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (store_id, category_id, month)
+);
+
+create table if not exists public.seller_category_targets (
+  id uuid primary key default gen_random_uuid(),
+  store_id uuid not null references public.stores(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  category_id uuid not null references public.service_categories(id) on delete cascade,
+  month text not null,
+  target numeric not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (store_id, user_id, category_id, month)
+);
+
+create table if not exists public.sales_entries (
+  id uuid primary key default gen_random_uuid(),
+  store_id uuid not null references public.stores(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  category_id uuid not null references public.service_categories(id) on delete cascade,
+  date date not null,
+  quantity numeric not null default 0,
+  source text not null default 'manual' check (source in ('manual','import')),
+  status text not null default 'active' check (status in ('active','cancelled')),
+  created_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (store_id, user_id, category_id, date)
+);
+
+create table if not exists public.store_calendar (
+  id uuid primary key default gen_random_uuid(),
+  store_id uuid not null references public.stores(id) on delete cascade,
+  date date not null,
+  is_working boolean not null default false,
+  note text,
+  open_time text,
+  close_time text,
+  created_at timestamptz not null default now(),
+  unique (store_id, date)
+);
+
+create index if not exists idx_sales_store_date on public.sales_entries(store_id, date);
+create index if not exists idx_sales_user_date on public.sales_entries(user_id, date);
+create index if not exists idx_sales_category on public.sales_entries(category_id);
+create index if not exists idx_seller_targets_store on public.seller_category_targets(store_id, month);
+create index if not exists idx_store_calendar_store on public.store_calendar(store_id, date);
+
+drop trigger if exists trg_store_category_targets_updated on public.store_category_targets;
+create trigger trg_store_category_targets_updated before update on public.store_category_targets
+  for each row execute function public.touch_updated_at();
+
+drop trigger if exists trg_seller_category_targets_updated on public.seller_category_targets;
+create trigger trg_seller_category_targets_updated before update on public.seller_category_targets
+  for each row execute function public.touch_updated_at();
+
+drop trigger if exists trg_sales_entries_updated on public.sales_entries;
+create trigger trg_sales_entries_updated before update on public.sales_entries
+  for each row execute function public.touch_updated_at();
+
+-- RLS
+alter table public.service_categories enable row level security;
+alter table public.store_categories enable row level security;
+alter table public.store_category_targets enable row level security;
+alter table public.seller_category_targets enable row level security;
+alter table public.sales_entries enable row level security;
+alter table public.store_calendar enable row level security;
+
+-- service_categories: όλοι διαβάζουν, μόνο master γράφει (κεντρική λίστα)
+drop policy if exists service_categories_select on public.service_categories;
+create policy service_categories_select on public.service_categories
+  for select using (auth.uid() is not null);
+
+drop policy if exists service_categories_write on public.service_categories;
+create policy service_categories_write on public.service_categories
+  for all using (public.is_master()) with check (public.is_master());
+
+-- store_categories
+drop policy if exists store_categories_select on public.store_categories;
+create policy store_categories_select on public.store_categories
+  for select using (public.is_master() or store_id = public.current_store());
+
+drop policy if exists store_categories_write on public.store_categories;
+create policy store_categories_write on public.store_categories
+  for all using (public.is_master() or (public.is_admin() and store_id = public.current_store()))
+  with check (public.is_master() or (public.is_admin() and store_id = public.current_store()));
+
+-- store_category_targets
+drop policy if exists store_category_targets_select on public.store_category_targets;
+create policy store_category_targets_select on public.store_category_targets
+  for select using (public.is_master() or store_id = public.current_store());
+
+drop policy if exists store_category_targets_write on public.store_category_targets;
+create policy store_category_targets_write on public.store_category_targets
+  for all using (public.is_master() or (public.is_admin() and store_id = public.current_store()))
+  with check (public.is_master() or (public.is_admin() and store_id = public.current_store()));
+
+-- seller_category_targets: ο πωλητής βλέπει μόνο τα δικά του
+drop policy if exists seller_category_targets_select on public.seller_category_targets;
+create policy seller_category_targets_select on public.seller_category_targets
+  for select using (
+    public.is_master()
+    or (public.is_admin() and store_id = public.current_store())
+    or user_id = auth.uid()
+  );
+
+drop policy if exists seller_category_targets_write on public.seller_category_targets;
+create policy seller_category_targets_write on public.seller_category_targets
+  for all using (public.is_master() or (public.is_admin() and store_id = public.current_store()))
+  with check (public.is_master() or (public.is_admin() and store_id = public.current_store()));
+
+-- sales_entries: ο πωλητής βλέπει/γράφει μόνο τα δικά του
+drop policy if exists sales_entries_select on public.sales_entries;
+create policy sales_entries_select on public.sales_entries
+  for select using (
+    public.is_master()
+    or (public.is_admin() and store_id = public.current_store())
+    or user_id = auth.uid()
+  );
+
+drop policy if exists sales_entries_insert on public.sales_entries;
+create policy sales_entries_insert on public.sales_entries
+  for insert with check (
+    (public.is_master() or (public.is_admin() and store_id = public.current_store()))
+    or (store_id = public.current_store() and user_id = auth.uid())
+  );
+
+drop policy if exists sales_entries_update on public.sales_entries;
+create policy sales_entries_update on public.sales_entries
+  for update using (
+    (public.is_master() or (public.is_admin() and store_id = public.current_store()))
+    or (store_id = public.current_store() and user_id = auth.uid())
+  ) with check (
+    (public.is_master() or (public.is_admin() and store_id = public.current_store()))
+    or (store_id = public.current_store() and user_id = auth.uid())
+  );
+
+drop policy if exists sales_entries_delete on public.sales_entries;
+create policy sales_entries_delete on public.sales_entries
+  for delete using (public.is_master() or (public.is_admin() and store_id = public.current_store()));
+
+-- store_calendar
+drop policy if exists store_calendar_select on public.store_calendar;
+create policy store_calendar_select on public.store_calendar
+  for select using (public.is_master() or store_id = public.current_store());
+
+drop policy if exists store_calendar_write on public.store_calendar;
+create policy store_calendar_write on public.store_calendar
+  for all using (public.is_master() or (public.is_admin() and store_id = public.current_store()))
+  with check (public.is_master() or (public.is_admin() and store_id = public.current_store()));
+
+-- Aggregate για εμφάνιση συνολικής πορείας καταστήματος στους πωλητές
+-- (χωρίς να εκθέτει μεμονωμένες εγγραφές άλλων πωλητών)
+create or replace function public.store_category_sales(p_store uuid, p_month text)
+returns table(category_id uuid, quantity numeric)
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+begin
+  if not (public.is_master() or p_store = public.current_store()) then
+    raise exception 'Δεν έχετε πρόσβαση σε αυτό το κατάστημα';
+  end if;
+
+  return query
+    select s.category_id, coalesce(sum(s.quantity), 0)
+    from public.sales_entries s
+    where s.store_id = p_store
+      and s.status = 'active'
+      and s.date >= (p_month || '-01')::date
+      and s.date < ((p_month || '-01')::date + interval '1 month')::date
+    group by s.category_id;
+end;
+$$;
+revoke all on function public.store_category_sales(uuid, text) from public;
+grant execute on function public.store_category_sales(uuid, text) to authenticated;
+
+-- Realtime για άμεση ενημέρωση πωλήσεων
+do $$
+begin
+  begin
+    alter publication supabase_realtime add table public.sales_entries;
+  exception when duplicate_object then null;
+  end;
+end $$;

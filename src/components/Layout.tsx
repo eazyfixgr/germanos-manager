@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 
 type IconName =
   | 'home' | 'target' | 'box' | 'calendar' | 'inbox' | 'users' | 'store'
-  | 'history' | 'shield' | 'user' | 'trash' | 'upload' | 'building'
+  | 'history' | 'shield' | 'user' | 'trash' | 'upload' | 'building' | 'layers'
 
 function Icon({ name }: { name: IconName }) {
   const common = {
@@ -45,6 +45,8 @@ function Icon({ name }: { name: IconName }) {
       return <svg {...common}><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13" /></svg>
     case 'upload':
       return <svg {...common}><path d="M12 16V4M7 8l5-4 5 4" /><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" /></svg>
+    case 'layers':
+      return <svg {...common}><path d="m12 3 9 5-9 5-9-5 9-5Z" /><path d="m3 13 9 5 9-5" /><path d="m3 17 9 5 9-5" /></svg>
   }
 }
 
@@ -115,6 +117,7 @@ export default function Layout() {
   const items: Item[] = [
     { to: '/', label: 'Αρχική', icon: 'home', end: true },
     { to: '/targets', label: 'Στόχοι', icon: 'target', end: false },
+    { to: '/services', label: 'Υπηρεσίες', icon: 'layers', end: false },
     { to: '/orders', label: 'Παραγγελίες', icon: 'box', end: false },
     { to: '/schedule', label: 'Πρόγραμμα', icon: 'calendar', end: false },
   ]

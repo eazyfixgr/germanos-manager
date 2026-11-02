@@ -4,6 +4,7 @@ import Layout from './components/Layout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Targets from './pages/Targets'
+import Services from './pages/Services'
 import Orders from './pages/Orders'
 import OrderDetail from './pages/OrderDetail'
 import Schedule from './pages/Schedule'
@@ -71,6 +72,7 @@ export default function App() {
       >
         <Route path="/" element={<Dashboard />} />
         <Route path="/targets" element={<Targets />} />
+        <Route path="/services" element={<Services />} />
         <Route path="/orders" element={<Orders />} />
         <Route path="/orders/:id" element={<OrderDetail />} />
         <Route path="/schedule" element={<Schedule />} />

@@ -10,6 +10,7 @@ export interface Profile {
   active: boolean
   can_edit_points: boolean
   is_primary: boolean
+  is_seller: boolean
   deleted_at: string | null
   deleted_by: string | null
   pending_store_name: string | null
@@ -24,6 +25,7 @@ export interface Store {
   address: string | null
   phone: string | null
   open_hours: string | null
+  fallback_work_days: string
   deleted_at: string | null
 }
 
@@ -118,3 +120,61 @@ export interface ActivityLog {
 }
 
 export type AccountType = 'user' | 'admin'
+
+export type CategoryUnit = 'count' | 'currency'
+
+export interface ServiceCategory {
+  id: string
+  name: string
+  unit: CategoryUnit
+  active: boolean
+  sort_order: number
+}
+
+export interface StoreCategory {
+  store_id: string
+  category_id: string
+  active: boolean
+  sort_order: number | null
+}
+
+export interface StoreCategoryTarget {
+  id: string
+  store_id: string
+  category_id: string
+  month: string
+  target: number
+}
+
+export interface SellerCategoryTarget {
+  id: string
+  store_id: string
+  user_id: string
+  category_id: string
+  month: string
+  target: number
+}
+
+export interface SalesEntry {
+  id: string
+  store_id: string
+  user_id: string
+  category_id: string
+  date: string
+  quantity: number
+  source: 'manual' | 'import'
+  status: 'active' | 'cancelled'
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface StoreCalendarDay {
+  id: string
+  store_id: string
+  date: string
+  is_working: boolean
+  note: string | null
+  open_time: string | null
+  close_time: string | null
+}

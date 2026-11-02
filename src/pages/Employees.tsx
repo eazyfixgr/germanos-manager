@@ -90,6 +90,13 @@ export default function Employees() {
     )
   }
 
+  function toggleSeller(r: Row) {
+    return run(
+      () => supabase.from('profiles').update({ is_seller: !r.is_seller }).eq('id', r.id),
+      `Ιδιότητα πωλητή: ${r.full_name}`,
+    )
+  }
+
   if (loading) return <Spinner />
   if (!isAdmin) return <Card><p className="text-sm text-slate-500">Δεν έχετε δικαίωμα.</p></Card>
 
@@ -130,6 +137,11 @@ export default function Employees() {
                   {roleText(r.role, r.is_primary)}
                 </Badge>
                 {r.can_edit_points && <Badge className="bg-blue-100 text-blue-800">Πόντοι</Badge>}
+                {r.role !== 'master' && (
+                  <Badge className={r.is_seller ? 'bg-teal-100 text-teal-800' : 'bg-slate-100 text-slate-500'}>
+                    {r.is_seller ? 'Πωλητής' : 'Μη πωλητής'}
+                  </Badge>
+                )}
               </div>
             </div>
 
@@ -140,6 +152,11 @@ export default function Employees() {
               {canTogglePoints(r) && (
                 <Button variant="secondary" className="!px-3 !py-1.5 text-xs" onClick={() => togglePoints(r)}>
                   {r.can_edit_points ? 'Αφαίρεση δικαιώματος πόντων' : 'Δικαίωμα επεξεργασίας πόντων'}
+                </Button>
+              )}
+              {r.role !== 'master' && sameStore(r) && isAdmin && r.active && (
+                <Button variant="secondary" className="!px-3 !py-1.5 text-xs" onClick={() => toggleSeller(r)}>
+                  {r.is_seller ? 'Ορισμός ως μη πωλητή' : 'Ορισμός ως πωλητή'}
                 </Button>
               )}
               {canChangeRole(r) && (
