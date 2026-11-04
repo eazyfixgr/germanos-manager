@@ -15,6 +15,7 @@ export default function Dashboard() {
   const [storeTarget, setStoreTarget] = useState<StoreTarget | null>(null)
   const [myTarget, setMyTarget] = useState<EmployeeTarget | null>(null)
   const [orders, setOrders] = useState<Order[]>([])
+  const [openOrders, setOpenOrders] = useState(0)
   const [reminders, setReminders] = useState<Order[]>([])
   const [myEntries, setMyEntries] = useState<{ date: string; points: number }[]>([])
   const [myShifts, setMyShifts] = useState<{ date: string; shift_type: string }[]>([])
@@ -42,7 +43,7 @@ export default function Dashboard() {
         const [yy, mm] = month.split('-').map(Number)
         const start = `${month}-01`
         const next = mm === 12 ? `${yy + 1}-01-01` : `${yy}-${String(mm + 1).padStart(2, '0')}-01`
-        const [st, mt, ord, rem, pe, ms, catRes, tgtRes, calRes, dailyRes] = await Promise.all([
+        const [st, mt, ord, rem, pe, ms, catRes, tgtRes, calRes, dailyRes, openRes] = await Promise.all([
           supabase.from('store_targets').select('*').eq('store_id', store.id).eq('month', month).maybeSingle(),
           isMaster
             ? Promise.resolve({ data: null })
@@ -55,10 +56,14 @@ export default function Dashboard() {
           supabase.from('store_category_targets').select('category_id, target').eq('store_id', store.id).eq('month', month),
           supabase.from('store_calendar').select('*').eq('store_id', store.id).gte('date', start).lt('date', next),
           supabase.rpc('store_daily_sales', { p_store: store.id, p_month: month }),
+          supabase.from('orders').select('*', { count: 'exact', head: true })
+            .eq('store_id', store.id)
+            .in('status', ['new', 'ordered', 'in_transit', 'received', 'ready', 'notified']),
         ])
         setStoreTarget(st.data as StoreTarget | null)
         setMyTarget((mt.data as EmployeeTarget | null) ?? null)
         setOrders((ord.data as Order[]) ?? [])
+        setOpenOrders(openRes.count ?? 0)
         setReminders((rem.data as Order[]) ?? [])
         setMyEntries((pe.data as { date: string; points: number }[]) ?? [])
         setMyShifts((ms.data as { date: string; shift_type: string }[]) ?? [])
@@ -98,7 +103,6 @@ export default function Dashboard() {
   if (loading) return <Spinner />
 
   const myProj = computeProjection(myEntries, myShifts, month)
-  const activeOrders = orders.filter((o) => !['completed', 'cancelled'].includes(o.status))
   const first = profile?.full_name.split(' ')[0] ?? ''
   const personalProgress = myTarget && Number(myTarget.points) > 0
     ? (myProj.total / Number(myTarget.points)) * 100
@@ -140,7 +144,7 @@ export default function Dashboard() {
             )}
             <MetricCard
               label="Ανοιχτές παραγγελίες"
-              value={activeOrders.length}
+              value={openOrders}
               detail="σε εκκρεμότητα"
               accent="purple"
             />
@@ -243,9 +247,9 @@ export default function Dashboard() {
                   </Link>
                 ))}
               </div>
-              {activeOrders.length > 0 && (
+              {openOrders > 0 && (
                 <div className="mt-3 rounded-control border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                  Έχεις <strong>{activeOrders.length}</strong> παραγγελία(ες) σε εκκρεμότητα.
+                  Έχεις <strong>{openOrders}</strong> παραγγελία(ες) σε εκκρεμότητα.
                 </div>
               )}
             </Card>

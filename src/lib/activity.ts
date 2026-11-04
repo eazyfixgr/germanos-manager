@@ -5,10 +5,13 @@ export async function logActivity(action: string, detail?: string, storeId?: str
   const userId = user.user?.id
   if (!userId) return
 
-  let sid = storeId
+  let sid: string | null | undefined = storeId
   if (!sid) {
     const { data: p } = await supabase.from('profiles').select('store_id').eq('id', userId).single()
     sid = p?.store_id
+  }
+  if (!sid && typeof localStorage !== 'undefined') {
+    sid = localStorage.getItem('gm_active_store') ?? undefined
   }
   if (!sid) return
 

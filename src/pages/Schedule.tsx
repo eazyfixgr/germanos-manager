@@ -118,30 +118,19 @@ export default function Schedule() {
       initialFairness,
     })
 
-    const del = await supabase.from('shifts').delete().eq('store_id', store.id)
-      .gte('date', `${genMonth}-01`).lt('date', nextMonthStr(genMonth))
-    if (del.error) { setBusy(false); setError(del.error.message); return }
-
-    let inserted = 0
-    for (let i = 0; i < result.shifts.length; i += 300) {
-      const chunk = result.shifts.slice(i, i + 300)
-      const { error } = await supabase.from('shifts').insert(chunk)
-      if (error) { setError(error.message); break }
-      inserted += chunk.length
-    }
-    const fairPayload = result.fairness.map((f) => ({
-      store_id: store.id,
-      user_id: f.user_id,
-      month: genMonth,
-      split_offs: f.split_offs,
-      short_offs: f.short_offs,
-    }))
-    await supabase.from('schedule_fairness').delete().eq('store_id', store.id).eq('month', genMonth)
-    if (fairPayload.length > 0) {
-      await supabase.from('schedule_fairness').insert(fairPayload)
+    const { error } = await supabase.rpc('replace_month_shifts', {
+      p_store: store.id,
+      p_month: genMonth,
+      p_shifts: result.shifts,
+      p_fairness: result.fairness,
+    })
+    if (error) {
+      setBusy(false)
+      setError(error.message)
+      return
     }
 
-    await logActivity('Αυτόματο πρόγραμμα', `${monthLabel(genMonth)}: ${inserted} βάρδιες`)
+    const inserted = result.shifts.length
     setBusy(false)
     setInfo(`Δημιουργήθηκαν ${inserted} βάρδιες.` + (result.warnings.length ? ` Προειδοποιήσεις: ${result.warnings.join(' · ')}` : ''))
     await load()

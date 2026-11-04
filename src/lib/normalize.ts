@@ -26,6 +26,9 @@ export function toNumber(v: unknown): number | null {
     s = s.replace(/,/g, '.')
   } else if ((s.match(/\./g) ?? []).length > 1) {
     s = s.replace(/\./g, '')
+  } else if (/^\d{1,3}\.\d{3}$/.test(s)) {
+    // Ελληνική μορφή χιλιάδων, π.χ. 1.234 -> 1234
+    s = s.replace('.', '')
   }
 
   const n = Number(s)

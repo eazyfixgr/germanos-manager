@@ -58,8 +58,9 @@ function eachDate(start: string, end: string): string[] {
 /**
  * Δημιουργεί πρόγραμμα βαρδιών για έναν μήνα:
  * - Σέβεται κλειστές ημέρες / μοτίβα ωραρίου (split/short/full).
- * - Σέβεται εγκεκριμένες άδειες και αιτήματα ρεπό (approved + pending repo).
- * - Δίνει 1 κυλιόμενο ρεπό/εβδομάδα ανά υπάλληλο (εκτός αν έχει ήδη ρεπό).
+ * - Σέβεται εγκεκριμένες άδειες και εγκεκριμένα ρεπό.
+ * - Τα εκκρεμή ρεπό είναι προτιμήσεις: λαμβάνονται υπόψη αν το επιτρέπει η στελέχωση.
+ * - Δίνει 1 κυλιόμενο ρεπό/εβδομάδα ανά υπάλληλο (εκτός αν έχει ήδη εγκεκριμένο ρεπό).
  * - Δίκαιη κατανομή: τα ρεπό σε ημέρες «σπαστού» μοιράζονται σε όσους είχαν λιγότερα.
  */
 export function buildSchedule(params: {
@@ -97,7 +98,8 @@ export function buildSchedule(params: {
     return { date, weekday: wd, closed, level, start, end }
   })
 
-  const repoByUser = new Map<string, Set<string>>()
+  const approvedRepoByUser = new Map<string, Set<string>>()
+  const pendingRepoByUser = new Map<string, Set<string>>()
   const adeiaByUser = new Map<string, Set<string>>()
   const add = (map: Map<string, Set<string>>, key: string, d: string) => {
     if (!map.has(key)) map.set(key, new Set())
@@ -111,8 +113,10 @@ export function buildSchedule(params: {
     for (const d of eachDate(start, end)) {
       if (lv.type === 'adeia') {
         if (lv.status === 'approved') add(adeiaByUser, lv.user_id, d)
-      } else {
-        add(repoByUser, lv.user_id, d)
+      } else if (lv.status === 'approved') {
+        add(approvedRepoByUser, lv.user_id, d)
+      } else if (lv.status === 'pending') {
+        add(pendingRepoByUser, lv.user_id, d)
       }
     }
   }
@@ -146,12 +150,13 @@ export function buildSchedule(params: {
     const openDays = weekDates.filter((d) => !d.closed)
     if (openDays.length === 0) continue
 
-    // Αν η Δευτέρα της εβδομάδας ανήκει σε προηγούμενο μήνα, το ρεπό της
-    // εβδομάδας το έχει ήδη δώσει το προηγούμενο πρόγραμμα. Αποφεύγουμε διπλό ρεπό.
-    if (key.slice(0, 7) !== month) continue
+    // Μια εβδομάδα ανατίθεται στον μήνα που περιέχει τις περισσότερες ημέρες της.
+    // Έτσι αποφεύγεται διπλό ρεπό σε εβδομάδες που μοιράζονται μεταξύ μηνών,
+    // και η μερική εβδομάδα με λίγες ημέρες δεν αφήνει υπαλλήλους χωρίς ρεπό.
+    if (weekDates.length < 4) continue
 
     const needed = employees.filter((emp) => {
-      if (weekDates.some((d) => repoByUser.get(emp.id)?.has(d.date))) return false
+      if (weekDates.some((d) => approvedRepoByUser.get(emp.id)?.has(d.date))) return false
       const allLeave = openDays.every((d) => adeiaByUser.get(emp.id)?.has(d.date))
       return !allLeave
     })
@@ -162,7 +167,7 @@ export function buildSchedule(params: {
     const assignedCount = new Map<string, number>()
     for (const d of openDays) {
       const alreadyOff = employees.filter((emp) =>
-        adeiaByUser.get(emp.id)?.has(d.date) || repoByUser.get(emp.id)?.has(d.date),
+        adeiaByUser.get(emp.id)?.has(d.date) || approvedRepoByUser.get(emp.id)?.has(d.date),
       ).length
       const available = employees.length - alreadyOff
       slots.set(d.date, Math.max(0, Math.min(baseCap, available - minStaff)))
@@ -183,7 +188,7 @@ export function buildSchedule(params: {
     for (const emp of order) {
       const candidates = openDays.filter((d) =>
         !adeiaByUser.get(emp.id)?.has(d.date) &&
-        !repoByUser.get(emp.id)?.has(d.date) &&
+        !approvedRepoByUser.get(emp.id)?.has(d.date) &&
         (slots.get(d.date) ?? 0) > 0,
       )
       if (candidates.length === 0) {
@@ -193,7 +198,10 @@ export function buildSchedule(params: {
       const byLoad = (a: { date: string }, b: { date: string }) =>
         load(a) - load(b) || a.date.localeCompare(b.date)
       const splitCand = candidates.filter((d) => d.level === 'split').sort(byLoad)
-      const chosen = splitCand[0] ?? candidates.slice().sort(byLoad)[0]
+      const preferred = candidates
+        .filter((d) => pendingRepoByUser.get(emp.id)?.has(d.date))
+        .sort((a, b) => a.date.localeCompare(b.date))
+      const chosen = preferred[0] ?? splitCand[0] ?? candidates.slice().sort(byLoad)[0]
 
       if (!rollingOff.has(chosen.date)) rollingOff.set(chosen.date, new Set())
       rollingOff.get(chosen.date)!.add(emp.id)
@@ -219,8 +227,8 @@ export function buildSchedule(params: {
       }
       if (adeiaByUser.get(emp.id)?.has(d.date)) {
         shifts.push({ ...base, shift_type: 'adeia', note: 'Άδεια' })
-      } else if (repoByUser.get(emp.id)?.has(d.date)) {
-        shifts.push({ ...base, shift_type: 'repo', note: 'Ρεπό (αίτημα)' })
+      } else if (approvedRepoByUser.get(emp.id)?.has(d.date)) {
+        shifts.push({ ...base, shift_type: 'repo', note: 'Ρεπό (εγκεκριμένο)' })
       } else if (rollingOff.get(d.date)?.has(emp.id)) {
         shifts.push({ ...base, shift_type: 'repo', note: 'Ρεπό' })
       } else {

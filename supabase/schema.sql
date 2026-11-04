@@ -177,7 +177,8 @@ create index if not exists idx_leave_user on public.leave_requests(user_id);
 create or replace function public.is_master()
 returns boolean language sql stable security definer set search_path = public as $$
   select exists (
-    select 1 from profiles where id = auth.uid() and role = 'master' and active = true
+    select 1 from profiles
+    where id = auth.uid() and role = 'master' and active = true and deleted_at is null
   );
 $$;
 
@@ -185,7 +186,7 @@ create or replace function public.is_admin()
 returns boolean language sql stable security definer set search_path = public as $$
   select exists (
     select 1 from profiles
-    where id = auth.uid() and role in ('admin','master') and active = true
+    where id = auth.uid() and role in ('admin','master') and active = true and deleted_at is null
   );
 $$;
 
@@ -193,16 +194,17 @@ create or replace function public.is_primary_admin()
 returns boolean language sql stable security definer set search_path = public as $$
   select exists (
     select 1 from profiles
-    where id = auth.uid() and role = 'master' and active = true
+    where id = auth.uid() and role = 'master' and active = true and deleted_at is null
   ) or exists (
     select 1 from profiles
-    where id = auth.uid() and role = 'admin' and is_primary = true and active = true
+    where id = auth.uid() and role = 'admin' and is_primary = true and active = true and deleted_at is null
   );
 $$;
 
 create or replace function public.current_store()
 returns uuid language sql stable security definer set search_path = public as $$
-  select store_id from profiles where id = auth.uid();
+  select store_id from profiles
+  where id = auth.uid() and active = true and deleted_at is null;
 $$;
 
 create or replace function public.can_edit_points()
@@ -758,7 +760,7 @@ create policy orders_update on public.orders
 
 drop policy if exists orders_delete_admin on public.orders;
 create policy orders_delete_admin on public.orders
-  for delete using (public.is_admin() or public.is_master());
+  for delete using (public.is_master() or (public.is_admin() and store_id = public.current_store()));
 
 -- order_events
 drop policy if exists order_events_select on public.order_events;
@@ -809,7 +811,7 @@ create policy leave_review_admin on public.leave_requests
 
 drop policy if exists leave_delete_admin on public.leave_requests;
 create policy leave_delete_admin on public.leave_requests
-  for delete using (public.is_admin() or public.is_master());
+  for delete using (public.is_master() or (public.is_admin() and store_id = public.current_store()));
 
 -- activity_log
 drop policy if exists activity_select on public.activity_log;
@@ -1072,8 +1074,10 @@ security definer
 set search_path = public
 as $$
 begin
-  if not (public.is_master() or p_store = public.current_store()) then
-    raise exception 'Δεν έχετε πρόσβαση σε αυτό το κατάστημα';
+  if not public.is_master() then
+    if public.current_store() is null or p_store <> public.current_store() then
+      raise exception 'Δεν έχετε πρόσβαση σε αυτό το κατάστημα';
+    end if;
   end if;
 
   return query
@@ -1292,8 +1296,10 @@ create or replace function public.store_daily_sales(p_store uuid, p_month text)
 returns table(sales_date date, quantity numeric)
 language plpgsql stable security definer set search_path = public as $$
 begin
-  if not (public.is_master() or p_store = public.current_store()) then
-    raise exception 'Δεν έχετε πρόσβαση σε αυτό το κατάστημα';
+  if not public.is_master() then
+    if public.current_store() is null or p_store <> public.current_store() then
+      raise exception 'Δεν έχετε πρόσβαση σε αυτό το κατάστημα';
+    end if;
   end if;
 
   return query
@@ -1311,3 +1317,82 @@ end;
 $$;
 revoke all on function public.store_daily_sales(uuid, text) from public;
 grant execute on function public.store_daily_sales(uuid, text) to authenticated;
+
+-- ------------------------------------------------------------
+-- 14) ΑΤΟΜΙΚΗ ΑΝΤΙΚΑΤΑΣΤΑΣΗ ΠΡΟΓΡΑΜΜΑΤΟΣ ΜΗΝΑ
+-- Διαγραφή + εισαγωγή βαρδιών και ενημέρωση δικαιοσύνης σε ένα transaction.
+-- ------------------------------------------------------------
+create or replace function public.replace_month_shifts(
+  p_store uuid,
+  p_month text,
+  p_shifts jsonb,
+  p_fairness jsonb
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_count integer := 0;
+begin
+  if not public.is_master() then
+    if public.current_store() is null or p_store <> public.current_store() then
+      raise exception 'Δεν έχετε πρόσβαση σε αυτό το κατάστημα';
+    end if;
+  end if;
+  if not public.is_admin() then
+    raise exception 'Δεν έχετε δικαίωμα επεξεργασίας προγράμματος';
+  end if;
+  if p_month !~ '^[0-9]{4}-[0-9]{2}$' then
+    raise exception 'Μη έγκυρος μήνας';
+  end if;
+
+  delete from public.shifts
+   where store_id = p_store
+     and date >= (p_month || '-01')::date
+     and date < ((p_month || '-01')::date + interval '1 month')::date;
+
+  insert into public.shifts (store_id, user_id, date, shift_type, start_time, end_time, note)
+  select p_store,
+         (x->>'user_id')::uuid,
+         (x->>'date')::date,
+         x->>'shift_type',
+         nullif(x->>'start_time', ''),
+         nullif(x->>'end_time', ''),
+         nullif(x->>'note', '')
+  from jsonb_array_elements(coalesce(p_shifts, '[]'::jsonb)) x
+  where (x->>'user_id') is not null
+    and (x->>'date') is not null
+    and (x->>'shift_type') is not null
+    and to_char((x->>'date')::date, 'YYYY-MM') = p_month
+    and exists (
+      select 1 from public.profiles p
+      where p.id = (x->>'user_id')::uuid and p.store_id = p_store
+    );
+
+  get diagnostics v_count = row_count;
+
+  delete from public.schedule_fairness
+   where store_id = p_store and month = p_month;
+
+  insert into public.schedule_fairness (store_id, user_id, month, split_offs, short_offs, updated_at)
+  select p_store,
+         (x->>'user_id')::uuid,
+         p_month,
+         coalesce((x->>'split_offs')::integer, 0),
+         coalesce((x->>'short_offs')::integer, 0),
+         now()
+  from jsonb_array_elements(coalesce(p_fairness, '[]'::jsonb)) x
+  where (x->>'user_id') is not null
+    and exists (
+      select 1 from public.profiles p
+      where p.id = (x->>'user_id')::uuid and p.store_id = p_store
+    );
+
+  insert into public.activity_log (store_id, actor_id, action, detail)
+  values (p_store, auth.uid(), 'Αυτόματο πρόγραμμα', p_month || ': ' || v_count || ' βάρδιες');
+end;
+$$;
+revoke all on function public.replace_month_shifts(uuid, text, jsonb, jsonb) from public;
+grant execute on function public.replace_month_shifts(uuid, text, jsonb, jsonb) to authenticated;

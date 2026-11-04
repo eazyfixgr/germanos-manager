@@ -129,7 +129,7 @@ export default function Import() {
       setSheetNames(reader.sheetNames)
       if (reader.sheetNames.length > 0) loadSheet(reader.sheetNames[0])
     } catch {
-      setError('Δεν ήταν δυνατή η ανάγνωση του αρχείου. Δοκίμασε .xlsx, .xls ή .csv.')
+      setError('Δεν ήταν δυνατή η ανάγνωση του αρχείου. Δοκίμασε .xlsx ή .csv.')
     }
   }
 
@@ -422,10 +422,10 @@ export default function Import() {
         </div>
 
         <label className="mt-3 block text-sm font-medium text-slate-700">
-          Αρχείο (.xlsx / .xls / .csv)
+          Αρχείο (.xlsx / .csv)
           <input
             type="file"
-            accept=".xlsx,.xls,.csv"
+            accept=".xlsx,.csv"
             className="mt-1 block w-full text-sm text-slate-500"
             onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f) }}
           />
