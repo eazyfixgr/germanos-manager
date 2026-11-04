@@ -292,6 +292,9 @@ create trigger trg_protect_profile before update on public.profiles
 create or replace function public.protect_target_points()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
+  if auth.uid() is null then
+    return new;
+  end if;
   if not (public.is_admin() or public.can_edit_points()) then
     if tg_op = 'UPDATE' then
       new.points := old.points;
