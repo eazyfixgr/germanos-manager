@@ -53,6 +53,9 @@ create or replace function public.store_category_sales(p_store uuid, p_month tex
 returns table(category_id uuid, quantity numeric)
 language plpgsql stable security definer set search_path = public as $$
 begin
+  if p_store is null then
+    raise exception 'Μη έγκυρο κατάστημα';
+  end if;
   if not public.is_master() then
     if public.current_store() is null or p_store <> public.current_store() then
       raise exception 'Δεν έχετε πρόσβαση σε αυτό το κατάστημα';
@@ -76,6 +79,9 @@ create or replace function public.store_daily_sales(p_store uuid, p_month text)
 returns table(sales_date date, quantity numeric)
 language plpgsql stable security definer set search_path = public as $$
 begin
+  if p_store is null then
+    raise exception 'Μη έγκυρο κατάστημα';
+  end if;
   if not public.is_master() then
     if public.current_store() is null or p_store <> public.current_store() then
       raise exception 'Δεν έχετε πρόσβαση σε αυτό το κατάστημα';
@@ -113,6 +119,9 @@ as $$
 declare
   v_count integer := 0;
 begin
+  if p_store is null then
+    raise exception 'Μη έγκυρο κατάστημα';
+  end if;
   if not public.is_master() then
     if public.current_store() is null or p_store <> public.current_store() then
       raise exception 'Δεν έχετε πρόσβαση σε αυτό το κατάστημα';

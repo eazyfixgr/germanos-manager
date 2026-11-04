@@ -58,18 +58,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const saved = localStorage.getItem('gm_active_store')
       const initial = list.find((s) => s.id === saved)?.id ?? list[0]?.id ?? null
       setActiveStoreIdState(initial)
-    } else if (p.store_id) {
-      const { data: st } = await supabase.from('stores').select('*').eq('id', p.store_id).single()
-      if (st) {
-        setStores([st as Store])
-        setActiveStoreIdState((st as Store).id)
-      } else {
-        setStores([])
-        setActiveStoreIdState(null)
-      }
     } else {
-      setStores([])
-      setActiveStoreIdState(null)
+      const { data: st } = await supabase
+        .from('stores')
+        .select('*')
+        .is('deleted_at', null)
+        .order('name')
+      let list = (st as Store[]) ?? []
+      if (list.length === 0 && p.store_id) {
+        const { data: own } = await supabase.from('stores').select('*').eq('id', p.store_id).single()
+        if (own) list = [own as Store]
+      }
+      setStores(list)
+      const preferred = p.active_store_id && list.some((s) => s.id === p.active_store_id)
+        ? p.active_store_id
+        : p.store_id && list.some((s) => s.id === p.store_id)
+          ? p.store_id
+          : list[0]?.id ?? null
+      setActiveStoreIdState(preferred)
     }
   }
 
@@ -78,8 +84,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   function setActiveStoreId(id: string) {
-    setActiveStoreIdState(id)
-    localStorage.setItem('gm_active_store', id)
+    if (profile?.role === 'master') {
+      setActiveStoreIdState(id)
+      localStorage.setItem('gm_active_store', id)
+      return
+    }
+    void (async () => {
+      const { error } = await supabase.rpc('set_active_store', { p_store: id })
+      if (error) return
+      setActiveStoreIdState(id)
+      localStorage.setItem('gm_active_store', id)
+      setProfile((prev) => (prev ? { ...prev, active_store_id: id } : prev))
+    })()
   }
 
   useEffect(() => {

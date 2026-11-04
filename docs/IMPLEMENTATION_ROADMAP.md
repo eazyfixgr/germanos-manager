@@ -33,10 +33,14 @@
 
 ## Φάση 1 — Commercial-Grade Foundation
 
-- [ ] Οντότητες `organizations`, `organization_memberships`.
-- [ ] `store_memberships` και migration υπαρχόντων ρόλων.
-- [ ] Organization/store isolation με RLS.
-- [ ] Υποστήριξη πολλαπλών καταστημάτων ανά organization.
+- [x] Οντότητες `organizations`, `organization_memberships`.
+- [x] `store_memberships` και migration υπαρχόντων ρόλων.
+- [x] Organization/store isolation με RLS.
+- [x] Υποστήριξη πολλαπλών καταστημάτων ανά organization.
+- [x] Active store switching (`active_store_id`, `set_active_store`).
+- [x] Σελίδα **Οργανισμός** με λίστα καταστημάτων και δημιουργία νέου.
+- [ ] UI διαχείρισης organization memberships.
+- [ ] Org-only admins (χωρίς store admin profile role).
 - [ ] Λειτουργία «πρόσβαση υποστήριξης» με reason + audit.
 - [ ] Ενιαίο audit events (actor, tenant, before/after, reason).
 - [ ] Μηνιαίο κλείδωμα περιόδου (period closing).

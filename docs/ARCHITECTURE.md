@@ -70,8 +70,11 @@ Role guards στο UI είναι συμπληρωματικοί. Η πραγμα
 
 Βασικοί πίνακες:
 
-- `stores`: κατάστημα, κωδικός, ωράριο, `min_staff`, `fallback_work_days`.
-- `profiles`: χρήστης, ρόλος (`master`/`admin`/`user`), `store_id`, `active`, `is_primary`, `is_seller`, `can_edit_points`, soft-delete πεδία.
+- `stores`: κατάστημα, κωδικός, ωράριο, `organization_id`, `min_staff`, `fallback_work_days`.
+- `profiles`: χρήστης, ρόλος (`master`/`admin`/`user`), `store_id` (home store), `active_store_id`, `active`, `is_primary`, `is_seller`, `can_edit_points`, soft-delete πεδία.
+- `organizations`: εταιρεία/οργανισμός.
+- `organization_memberships`: ρόλοι owner/admin/member ανά οργανισμό.
+- `store_memberships`: πρόσβαση και ρόλος ανά κατάστημα (admin/user, is_seller, can_edit_points).
 - `store_targets`, `employee_targets`: στόχοι πόντων ανά μήνα.
 - `point_entries`: ημερήσιοι πόντοι ανά υπάλληλο.
 - `service_categories`: κεντρικές κατηγορίες υπηρεσιών, μονάδα `count`/`currency`.
@@ -96,8 +99,20 @@ Role guards στο UI είναι συμπληρωματικοί. Η πραγμα
   - `store_category_sales`, `store_daily_sales` (aggregates χωρίς έκθεση μεμονωμένων πωλητών).
   - `replace_month_shifts` (ατομική αντικατάσταση προγράμματος μήνα).
 - Triggers προστασίας: profile fields, target points, task fields, master allowlist.
+- Sync trigger `sync_store_membership`: κρατά το `store_memberships` ευθυγραμμισμένο με τα πεδία του home store profile.
 - Soft delete και audit.
 - Realtime σε orders, profiles, sales, tasks.
+
+## 5.1 Πολλαπλά καταστήματα
+
+- Κάθε κατάστημα ανήκει σε `organization`.
+- Το `profiles.active_store_id` ορίζει το ενεργό κατάστημα για RLS μέσω `current_store()`.
+- `current_store()` επιστρέφει το active store μόνο αν ο χρήστης έχει πρόσβαση (`can_access_store`), αλλιώς το home store.
+- Πρόσβαση δίνεται από `store_memberships` ή από ρόλο owner/admin στο organization.
+- `set_active_store(store_id)` εναλλάσσει κατάστημα με έλεγχο πρόσβασης.
+- `create_org_store(...)` δημιουργεί κατάστημα σε organization, προσθέτει store membership για τον δημιουργό και το θέτει ενεργό.
+- Η σελίδα **Οργανισμός** εμφανίζει τα προσβάσιμα καταστήματα, επιτρέπει εναλλαγή και (για owner/admin) δημιουργία καταστήματος.
+- Ο master βλέπει όλα τα καταστήματα μέσω `is_master()` και του store selector.
 
 ## 6. Υπολογισμοί
 
@@ -119,6 +134,13 @@ Role guards στο UI είναι συμπληρωματικοί. Η πραγμα
 - CI/CD: GitHub Actions, tests → build → deploy Pages.
 - Secrets: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (public anon key).
 - Δεν υπάρχει service-role key στο frontend.
+
+### Fresh installs / migrations
+
+Το `supabase/schema.sql` είναι το consolidated baseline. Οι νεότερες αλλαγές βρίσκονται σε `supabase/migrations/` και είναι το authoritative incremental history. Για νέα εγκατάσταση:
+
+1. Τρέξε `supabase/schema.sql`.
+2. Τρέξε τα migrations με χρονολογική σειρά.
 
 ### Περιορισμός hosting
 

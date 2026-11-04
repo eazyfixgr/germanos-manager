@@ -12,6 +12,7 @@ import Tasks from './pages/Tasks'
 import Requests from './pages/Requests'
 import Employees from './pages/Employees'
 import StoreSettings from './pages/StoreSettings'
+import Organization from './pages/Organization'
 import Stores from './pages/Stores'
 import Security from './pages/Security'
 import Import from './pages/Import'
@@ -85,6 +86,7 @@ export default function App() {
         <Route path="/import" element={<AdminOnly><Import /></AdminOnly>} />
         <Route path="/trash" element={<AdminOnly><Trash /></AdminOnly>} />
         <Route path="/store" element={<AdminOnly><StoreSettings /></AdminOnly>} />
+        <Route path="/organization" element={<AdminOnly><Organization /></AdminOnly>} />
         <Route path="/stores" element={<MasterOnly><Stores /></MasterOnly>} />
         <Route path="/security" element={<MasterOnly><Security /></MasterOnly>} />
       </Route>

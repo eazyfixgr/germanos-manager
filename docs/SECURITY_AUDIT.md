@@ -24,6 +24,9 @@
 | SEC-15 | Realtime authorization verification | Medium | Ανοιχτό |
 | SEC-16 | Rate limiting / security headers | Medium | Ανοιχτό |
 | SEC-17 | Backups / restore verification | High (production) | Σε αναμονή |
+| SEC-18 | Multi-store / organization isolation | High | Αρχική υλοποίηση, ελεγμένο |
+| SEC-19 | Org managers στο UI χρειάζονται admin profile | Medium | Γνωστός περιορισμός |
+| SEC-20 | NULL `p_store` δεν απορριπτόταν σε RPC | High | Διορθώθηκε |
 
 ## Αναλυτικά ευρήματα
 
@@ -101,6 +104,24 @@
 ### SEC-17 — Backups
 - **Κατάσταση:** σε αναμονή σύμφωνα με οδηγία χρήστη.
 - **Απαίτηση production:** automated encrypted backups, retention, restore test.
+
+### SEC-18 — Multi-store / organization isolation
+- **Υλοποίηση:** `organizations`, `organization_memberships`, `store_memberships`, `stores.organization_id`, `profiles.active_store_id`.
+- **Έλεγχος πρόσβασης:** `can_access_store()` = master ή ενεργό store membership ή org owner/admin.
+- **RLS:** νέες πολιτικές σε organizations/memberships/stores. Το `current_store()` χρησιμοποιεί το active store μόνο μετά από έλεγχο πρόσβασης.
+- **RPC:** `set_active_store`, `create_org_store` με ελέγχους org manager/master.
+- **Επαλήθευση:** demo org admin δημιούργησε 2ο κατάστημα, το είδε, εκτέλεσε aggregate, επέστρεψε στο αρχικό, cleanup OK.
+- **Υπόλοιπο:** UI διαχείρισης org memberships (προσθήκη/αφαίρεση admins) και πλήρες org-only admin UI.
+
+### SEC-19 — Org manager στο UI
+- **Κατάσταση:** το UI εμφανίζει οργανισμό/διαχείριση σε χρήστες με `profiles.role = 'admin'`. Ένας org manager με profile role `user` μπορεί να έχει DB δικαιώματα αλλά όχι τα admin μενού.
+- **Επίπτωση:** λειτουργικός περιορισμός, όχι privilege escalation.
+- **Σχέδιο:** έκθεση `orgRole` από το auth context και role-based nav.
+
+### SEC-20 — NULL `p_store`
+- **Απόδειξη:** `p_store = NULL` σε RPC με `current_store` μη-null παρήγαγε NULL comparison και δεν ενεργοποιούσε το raise.
+- **Διόρθωση:** ρητός έλεγχος `p_store is null` σε `store_category_sales`, `store_daily_sales`, `replace_month_shifts`.
+- **Επαλήθευση:** κλήση με `p_store: null` → απόρριψη.
 
 ## Επιβεβαιωμένοι έλεγχοι
 

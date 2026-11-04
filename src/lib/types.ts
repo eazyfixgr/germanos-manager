@@ -5,6 +5,7 @@ export interface Profile {
   full_name: string
   role: Role
   store_id: string | null
+  active_store_id: string | null
   phone: string | null
   email: string
   active: boolean
@@ -22,12 +23,20 @@ export interface Store {
   id: string
   name: string
   code: string | null
+  organization_id: string | null
   address: string | null
   phone: string | null
   open_hours: string | null
   fallback_work_days: string
   min_staff: number
   deleted_at: string | null
+}
+
+export interface Organization {
+  id: string
+  name: string
+  created_by: string | null
+  created_at: string
 }
 
 export interface StoreTarget {

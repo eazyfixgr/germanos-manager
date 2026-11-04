@@ -180,6 +180,7 @@ export default function Layout() {
     settings.push({ to: '/stores', label: 'Καταστήματα', icon: 'building', end: false })
     settings.push({ to: '/security', label: 'Ασφάλεια', icon: 'shield', end: false })
   } else if (isAdmin) {
+    settings.push({ to: '/organization', label: 'Οργανισμός', icon: 'building', end: false })
     settings.push({ to: '/store', label: 'Κατάστημα', icon: 'store', end: false })
   }
   settings.push({ to: '/activity', label: 'Ιστορικό', icon: 'history', end: false })
@@ -303,7 +304,7 @@ export default function Layout() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            {isMaster && stores.length > 0 && (
+            {(isMaster || stores.length > 1) && stores.length > 0 && (
               <select
                 value={activeStoreId ?? ''}
                 onChange={(e) => setActiveStoreId(e.target.value)}
