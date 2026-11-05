@@ -15,6 +15,7 @@ import StoreSettings from './pages/StoreSettings'
 import Organization from './pages/Organization'
 import Stores from './pages/Stores'
 import Security from './pages/Security'
+import SupportAccess from './pages/SupportAccess'
 import Import from './pages/Import'
 import Trash from './pages/Trash'
 import Account from './pages/Account'
@@ -35,8 +36,16 @@ function Notice({ title, message }: { title: string; message: string }) {
 }
 
 function Protected({ children }: { children: React.ReactNode }) {
-  const { session, profile, loading } = useAuth()
+  const { session, profile, loading, authError, refreshProfile, signOut } = useAuth()
   if (loading) return <Spinner />
+  if (authError) return (
+    <div className="mx-auto max-w-lg space-y-4 p-8" role="alert">
+      <h2 className="text-lg font-semibold">Σφάλμα φόρτωσης λογαριασμού</h2>
+      <p>{authError}</p>
+      <Button onClick={() => { if (session) void refreshProfile(); else window.location.reload() }}>Επανάληψη</Button>
+      <Button variant="secondary" onClick={() => void signOut()}>Έξοδος</Button>
+    </div>
+  )
   if (!session) return <Navigate to="/login" replace />
   if (!profile) return <Spinner />
   if (profile.deleted_at) {
@@ -48,9 +57,15 @@ function Protected({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
-function AdminOnly({ children }: { children: React.ReactNode }) {
-  const { isAdmin } = useAuth()
-  if (!isAdmin) return <Navigate to="/" replace />
+function AdminOnly({ children, allowPlatform = false }: { children: React.ReactNode; allowPlatform?: boolean }) {
+  const { isAdmin, isMaster } = useAuth()
+  if (!isAdmin && !(allowPlatform && isMaster)) return <Navigate to="/" replace />
+  return <>{children}</>
+}
+
+function TenantOnly({ children }: { children: React.ReactNode }) {
+  const { isMaster, supportSession } = useAuth()
+  if (isMaster && !supportSession) return <Navigate to="/support" replace />
   return <>{children}</>
 }
 
@@ -73,22 +88,23 @@ export default function App() {
         }
       >
         <Route path="/" element={<Dashboard />} />
-        <Route path="/targets" element={<Targets />} />
-        <Route path="/services" element={<Services />} />
-        <Route path="/orders" element={<Orders />} />
-        <Route path="/orders/:id" element={<OrderDetail />} />
-        <Route path="/schedule" element={<Schedule />} />
-        <Route path="/tasks" element={<Tasks />} />
-        <Route path="/activity" element={<Activity />} />
+        <Route path="/targets" element={<TenantOnly><Targets /></TenantOnly>} />
+        <Route path="/services" element={<TenantOnly><Services /></TenantOnly>} />
+        <Route path="/orders" element={<TenantOnly><Orders /></TenantOnly>} />
+        <Route path="/orders/:id" element={<TenantOnly><OrderDetail /></TenantOnly>} />
+        <Route path="/schedule" element={<TenantOnly><Schedule /></TenantOnly>} />
+        <Route path="/tasks" element={<TenantOnly><Tasks /></TenantOnly>} />
+        <Route path="/activity" element={<TenantOnly><Activity /></TenantOnly>} />
         <Route path="/account" element={<Account />} />
-        <Route path="/requests" element={<AdminOnly><Requests /></AdminOnly>} />
-        <Route path="/employees" element={<AdminOnly><Employees /></AdminOnly>} />
-        <Route path="/import" element={<AdminOnly><Import /></AdminOnly>} />
-        <Route path="/trash" element={<AdminOnly><Trash /></AdminOnly>} />
-        <Route path="/store" element={<AdminOnly><StoreSettings /></AdminOnly>} />
-        <Route path="/organization" element={<AdminOnly><Organization /></AdminOnly>} />
+        <Route path="/requests" element={<AdminOnly allowPlatform><Requests /></AdminOnly>} />
+        <Route path="/employees" element={<TenantOnly><AdminOnly><Employees /></AdminOnly></TenantOnly>} />
+        <Route path="/import" element={<TenantOnly><AdminOnly><Import /></AdminOnly></TenantOnly>} />
+        <Route path="/trash" element={<TenantOnly><AdminOnly><Trash /></AdminOnly></TenantOnly>} />
+        <Route path="/store" element={<TenantOnly><AdminOnly><StoreSettings /></AdminOnly></TenantOnly>} />
+        <Route path="/organization" element={<TenantOnly><AdminOnly><Organization /></AdminOnly></TenantOnly>} />
         <Route path="/stores" element={<MasterOnly><Stores /></MasterOnly>} />
         <Route path="/security" element={<MasterOnly><Security /></MasterOnly>} />
+        <Route path="/support" element={<MasterOnly><SupportAccess /></MasterOnly>} />
       </Route>
       <Route path="*" element={<Navigate to={session ? '/' : '/login'} replace />} />
     </Routes>

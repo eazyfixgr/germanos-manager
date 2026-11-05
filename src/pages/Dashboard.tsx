@@ -8,10 +8,10 @@ import type { EmployeeTarget, Order, StoreCalendarDay, StoreTarget } from '../li
 import { Button, Card, EmptyState, MetricCard, PageHeader, Spinner } from '../components/ui'
 import { SalesTrendChart, type TrendPoint } from '../components/Charts'
 
-interface MasterStats { stores: number; users: number; pending: number }
+interface MasterStats { stores: number; pending: number }
 
 export default function Dashboard() {
-  const { profile, store, isMaster } = useAuth()
+  const { profile, store, isMaster, supportStores } = useAuth()
   const [storeTarget, setStoreTarget] = useState<StoreTarget | null>(null)
   const [myTarget, setMyTarget] = useState<EmployeeTarget | null>(null)
   const [orders, setOrders] = useState<Order[]>([])
@@ -31,12 +31,9 @@ export default function Dashboard() {
       const cutoff = new Date(Date.now() - 2 * 86400000).toISOString()
 
       if (isMaster) {
-        const [{ count: sc }, { count: uc }, { count: pc }] = await Promise.all([
-          supabase.from('stores').select('*', { count: 'exact', head: true }).is('deleted_at', null),
-          supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('active', true).is('deleted_at', null),
-          supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('active', false).is('deleted_at', null),
-        ])
-        setMasterStats({ stores: sc ?? 0, users: uc ?? 0, pending: pc ?? 0 })
+        const { count: pc } = await supabase.from('profiles').select('*', { count: 'exact', head: true })
+          .is('store_id', null).eq('active', false).is('deleted_at', null)
+        setMasterStats({ stores: supportStores.length, pending: pc ?? 0 })
       }
 
       if (store) {
@@ -98,7 +95,7 @@ export default function Dashboard() {
       }
       setLoading(false)
     })()
-  }, [profile, store, isMaster, month])
+  }, [profile, store, isMaster, month, supportStores])
 
   if (loading) return <Spinner />
 
@@ -114,14 +111,13 @@ export default function Dashboard() {
         eyebrow="Επισκόπηση"
         title={`Καλημέρα, ${first}`}
         subtitle={`${monthLabel(month)}${store ? ` · ${store.name}` : ''}`}
-        actions={<Link to="/services"><Button>Υπηρεσίες</Button></Link>}
+        actions={<Link to={isMaster && !store ? '/support' : '/services'}><Button>{isMaster && !store ? 'Πρόσβαση υποστήριξης' : 'Υπηρεσίες'}</Button></Link>}
       />
 
       {isMaster && masterStats && (
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           <Link to="/stores"><MetricCard label="Καταστήματα" value={masterStats.stores} detail="ενεργά καταστήματα" /></Link>
-          <Link to="/employees"><MetricCard label="Ενεργοί χρήστες" value={masterStats.users} detail="σε όλα τα καταστήματα" accent="green" /></Link>
-          <Link to="/requests"><MetricCard label="Εκκρεμείς αιτήσεις" value={masterStats.pending} detail="προς έγκριση" accent="amber" /></Link>
+          <Link to="/requests"><MetricCard label="Αιτήσεις νέων καταστημάτων" value={masterStats.pending} detail="προς έγκριση πλατφόρμας" accent="amber" /></Link>
         </div>
       )}
 
@@ -258,9 +254,9 @@ export default function Dashboard() {
       ) : (
         <Card>
           <EmptyState
-            title={isMaster ? 'Επιλέξτε κατάστημα' : 'Δεν έχετε συνδεδεμένο κατάστημα'}
+            title={isMaster ? 'Χωρίς ενεργή πρόσβαση υποστήριξης' : 'Δεν έχετε συνδεδεμένο κατάστημα'}
             text={isMaster
-              ? 'Χρησιμοποίησε τον επιλογέα καταστήματος στην κορυφή ή δημιούργησε νέο από «Καταστήματα».'
+              ? 'Επίλεξε κατάστημα και αιτιολογία από την Πρόσβαση υποστήριξης για να δεις λειτουργικά δεδομένα.'
               : 'Επικοινωνήστε με τον διαχειριστή του καταστήματος.'}
           />
         </Card>

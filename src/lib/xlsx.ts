@@ -16,6 +16,7 @@ export interface XlsxSheet {
 }
 
 export const ACCEPTED_SPREADSHEET_EXTENSIONS = '.xlsx,.csv'
+export const MAX_SPREADSHEET_BYTES = 10 * 1024 * 1024
 
 function pad(n: number) { return String(n).padStart(2, '0') }
 
@@ -87,6 +88,8 @@ function parseCsv(text: string): string[][] {
 }
 
 export async function readWorkbook(file: File): Promise<WorkbookReader> {
+  if (file.size > MAX_SPREADSHEET_BYTES) throw new Error('Το αρχείο υπερβαίνει το όριο των 10 MB.')
+  if (!/\.(xlsx|csv)$/i.test(file.name)) throw new Error('Υποστηρίζονται μόνο αρχεία .xlsx και .csv.')
   if (/\.csv$/i.test(file.name) || file.type.includes('csv')) {
     const text = await file.text()
     const data = toSheetData('CSV', parseCsv(text))
@@ -96,10 +99,9 @@ export async function readWorkbook(file: File): Promise<WorkbookReader> {
     }
   }
 
-  const mod: any = await import('read-excel-file/browser')
-  const readXlsxFile = mod.default ?? mod
+  const { default: readXlsxFile } = await import('read-excel-file/browser')
   const buffer = await file.arrayBuffer()
-  const sheets: { sheet: string; data: unknown[][] }[] = await readXlsxFile(buffer)
+  const sheets = await readXlsxFile(buffer)
 
   const map: Record<string, SheetData> = {}
   const names: string[] = []
@@ -115,8 +117,7 @@ export async function readWorkbook(file: File): Promise<WorkbookReader> {
 }
 
 export async function downloadXlsx(filename: string, sheets: XlsxSheet[]) {
-  const mod: any = await import('write-excel-file/browser')
-  const writeXlsxFile = mod.default ?? mod
+  const { default: writeXlsxFile } = await import('write-excel-file/browser')
 
   if (sheets.length === 1) {
     const data = [sheets[0].headers, ...sheets[0].rows]

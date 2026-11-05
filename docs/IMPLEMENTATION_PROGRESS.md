@@ -1,119 +1,135 @@
 # Implementation Progress — Γερμανός Manager
 
-Τελευταία ενημέρωση: 4 Νοεμβρίου 2026
+Τελευταία ενημέρωση: 5 Νοεμβρίου 2026
 
-## Τρέχουσα φάση
+## Τρέχουσα κατάσταση
 
-**Phase 1 — Commercial-Grade Foundation**
-- Phase 0: ολοκληρώθηκε και ανέβηκε.
-- Phase 1.1: ολοκληρώθηκε και ανέβηκε.
-- Επόμενο: **Phase 1.2**.
+**Phase 1.2 + Workforce W1 — authorization/support και νέα βασική εμπειρία Προγράμματος: τοπική υλοποίηση.**
 
-## Phase 0 — Audit & Stabilization (ολοκληρωμένο)
+- Οι Phase 0/1.1 παραδόθηκαν προηγουμένως (`9edc2dd`, `9ea6643`). Ο επανέλεγχος εντόπισε ουσιαστικά κενά· οι παλιές σημάνσεις «ολοκληρωμένο/ελεγμένο» δεν αποτελούν πλήρη πιστοποίηση ασφάλειας.
+- Οι διορθώσεις και τα νέα tests βρίσκονται στο working tree. Δεν έγινε νέο commit, push, deploy ή εφαρμογή migration στη demo βάση στην παρούσα εργασία.
+- Ο χρήστης ζήτησε commit/push πριν το W2. Η παράδοση προετοιμάζεται στο branch `feat/workforce-foundation`, επειδή το `main` ενεργοποιεί Pages deploy ενώ εκκρεμούν τα migrations. Η remote βάση δεν μεταβλήθηκε.
+- Τα πέντε νέα migrations ελέγχθηκαν τοπικά σε PostgreSQL/PGlite με synthetic λογαριασμούς. Frontend: TypeScript/build, React/jsdom και πραγματικό Chrome desktop/mobile με synthetic transport. Hosted Supabase/Realtime acceptance εκκρεμεί.
+- Η συνολική Phase 1.2 παραμένει ανοιχτή: period closing και deployment acceptance εκκρεμούν.
+- Νέα οδηγία χρήστη: **προηγείται η αναβάθμιση Προγράμματος/αδειών και παραθύρων σύμφωνα με το δοσμένο HTML demo**, πριν ξεκινήσει το period closing. Οι νέες ενότητες συνεργασίας καταγράφηκαν στο roadmap ως μελλοντική υλοποίηση.
 
-### Διορθώσεις
-- [x] Αντικατάσταση ευάλωτου `xlsx` με `read-excel-file` + `write-excel-file`.
-- [x] `current_store()` αγνοεί inactive/deleted χρήστες.
-- [x] Delete policies orders/leave scoped στο κατάστημα.
-- [x] Explicit NULL/ownership checks στα aggregate RPCs.
-- [x] `replace_month_shifts` για ατομική αντικατάσταση μήνα.
-- [x] Dashboard: exact count ανοιχτών παραγγελιών.
-- [x] `logActivity` fallback στο active master store.
-- [x] Πρόγραμμα: εβδομάδα ορίου μήνα με βάση τις περισσότερες ημέρες.
-- [x] Εκκρεμή ρεπό ως προτιμήσεις· approved = binding.
-- [x] Parser ελληνικών χιλιάδων.
-- [x] Φίλτρα RPC: user ίδιου καταστήματος + ημερομηνία εντός μήνα.
+## Νέα προδιαγραφή χρήστη — Πρόγραμμα και καθημερινή συνεργασία
 
-### Tests / CI
-- [x] 25 unit tests (projection, scheduleGen, normalize).
-- [x] CI test step πριν το build.
-- [x] Χειροκίνητοι έλεγχοι seller/admin RPC.
-- [x] Phase 0 build/lint/audit έλεγχοι.
+- [x] Μελέτη του παρεχόμενου HTML/CSS/JavaScript demo και σύγκριση με το πραγματικό `Schedule`, `PatternSettings`, generator/types και shared Modal. Δεν έγινε browser-render acceptance του demo.
+- [x] `docs/WORKFORCE_UX_SPEC.md`: οθόνες/παράθυρα, κανόνες ευκολίας χρήσης, πραγματικά intervals/κάλυψη, ημερήσια ανάλυση, αιτήσεις/χρέωση άδειας και σειρά W1–W5.
+- [x] `docs/COLLABORATION_MODULES_PLAN.md`: Σημειώσεις/to-do/ραντεβού με share/Εισερχόμενα, Προωθητικές Telecom/ΓΕΡΜΑΝΟΣ και Chat ανά store για αντικατάσταση Viber.
+- [x] Κύκλος Προωθητικών: PDF μέσα στη σελίδα, προαιρετικό κείμενο επάνω, βέλη προηγούμενης/επόμενης ενέργειας, έναρξη/λήξη, Αρχείο για τρεις ημερολογιακούς μήνες και πραγματική διαγραφή PDF/metadata από server job.
+- [x] Ενημερωμένες αποφάσεις/roadmap και κριτήρια αποδοχής πρώτης χρήσης χωρίς προφορική καθοδήγηση.
+- [x] W1 τοπικά: shared dialogs, scoped read model, μήνας/εβδομάδα, ημερήσια ανάλυση, προσωπική/ομαδική προβολή, CSV και διατηρημένες legacy ενέργειες. Αναλυτικά: `docs/WORKFORCE_W1_PROGRESS.md`.
+- [ ] W2–W5: intervals/ανάγκες, ολοκληρωμένο transactional leave workflow, αποθηκευμένα drafts/publish και πλήρης αξιολόγηση πρώτης χρήσης.
+- [ ] Υλοποίηση C0–C3 μετά το άμεσο ορόσημο, με προτεινόμενη αλληλουχία inbox/notifications → Σημειώσεις → Προωθητικές → Chat/mobile push.
 
-## Phase 1.1 — Organizations & multi-store (ολοκληρωμένο)
+Το W1 ελέγχθηκε με SQL, unit/component και Chrome synthetic browser scenarios. Δεν έγινε remote migration/deploy ή μεταβολή πραγματικών λογαριασμών.
 
-### Database
-- [x] `organizations`.
-- [x] `organization_memberships` (owner/admin/member).
-- [x] `store_memberships` (admin/user, is_seller, can_edit_points, active).
-- [x] `stores.organization_id`, `profiles.active_store_id`.
-- [x] Helpers: `organization_for_store`, `is_org_member`, `is_org_manager`, `can_access_store`.
-- [x] `current_store()` με active store + access validation.
-- [x] RPC `set_active_store`.
-- [x] RPC `create_org_store` με έλεγχο org manager/master και unique code.
-- [x] Trigger `sync_store_membership` για συγχρονισμό με τα profile πεδία.
-- [x] Seed: υπάρχον κατάστημα → πρώτος οργανισμός, κύριος admin → owner, store memberships για όλους.
-- [x] Νέα καταστήματα από approval αποκτούν organization + owner.
+## Phase 0/1.1 — προηγούμενη παράδοση
 
-### Frontend
-- [x] Auth context: λίστα προσβάσιμων stores + active store από DB.
-- [x] Store selector για master ή χρήστες με >1 καταστήματα.
-- [x] Σελίδα **Οργανισμός** (`/organization`): org info, role, λίστα stores, εναλλαγή, δημιουργία store.
-- [x] Nav item «Οργανισμός» για non-master admins.
+- Αντικατάσταση `xlsx`, exact count ανοιχτών παραγγελιών, aggregate NULL/store checks, atomic schedule RPC, pending ρεπό ως προτιμήσεις.
+- Organizations, organization/store memberships, active store, `set_active_store`, `create_org_store`, σελίδα `/organization` και store selector.
+- 25 αρχικά unit tests και CI test step πριν το build.
+- Τα migrations `20261104_*` είχαν αναφερθεί ως εφαρμοσμένα στη demo βάση. Η remote κατάσταση δεν επανελέγχθηκε στην παρούσα εργασία.
 
-### Επαληθεύσεις Phase 1.1
-- [x] Migration στη demo βάση.
-- [x] Seed: 1 org, 1 owner, 9 store memberships, 9 active stores.
-- [x] Demo org admin δημιούργησε 2ο κατάστημα.
-- [x] Είδαν 2 stores, ενεργό το νέο, aggregate OK.
-- [x] `p_store: null` → απόρριψη.
-- [x] Εναλλαγή πίσω στο αρχικό store.
-- [x] Cleanup: 1 store, demo1 role user, active store αρχικό, 1 org member.
+## Επανέλεγχος και τοπικές διορθώσεις
 
-## Database migrations
+### Membership authorization
 
-- `supabase/migrations/20261104_phase0_security_fixes.sql` — εφαρμόστηκε.
-- `supabase/migrations/20261104_phase1_organizations.sql` — εφαρμόστηκε.
-- `supabase/schema.sql` — baseline (Phase 0). Νέα installations: schema.sql + migrations με σειρά.
+- [x] Αναπαραγωγή legacy privilege leak: home-store admin αποκτούσε admin authority σε δεύτερο store όπου ήταν employee.
+- [x] `can_manage_store` / `can_lead_store` και effective permissions βάσει του συγκεκριμένου store membership ή org owner/admin.
+- [x] Ενεργός, μη διαγραμμένος actor υποχρεωτικά στα access/org helpers και restrictive operational RLS policies.
+- [x] Ανάκληση membership: χωρίς ανεξέλεγκτο home-store fallback ή αναδημιουργία membership από αλλαγή στοιχείων επικοινωνίας.
+- [x] Πρόσθετος store-access έλεγχος στα self-row policies πωλήσεων, seller targets και εργασιών. Η ανάκληση membership αφαιρεί και την πρόσβαση σε προσωπικές παλιές εγγραφές του store.
+- [x] Profile guard: αποτροπή self-promotion, αυθαίρετων lifecycle/seller/tenant/identity αλλαγών και forged active store.
+- [x] Αφαίρεση direct membership mutation policies/grants· org role changes μέσω ελεγχόμενου RPC.
+- [x] Store tenant guard: store admin δεν μεταφέρει κατάστημα σε άλλον οργανισμό.
+- [x] `create_org_store` δεν εγγράφει τον platform master ως tenant member και δεν ανοίγει πρόσβαση στο νέο store. Για master το store context προέρχεται μόνο από ενεργό support session.
 
-## Αλλαγμένα αρχεία (Phase 1.1)
+### Atomic πρόγραμμα
 
-- `src/lib/types.ts`
-- `src/lib/auth.tsx`
-- `src/components/Layout.tsx`
-- `src/App.tsx`
-- `src/pages/Organization.tsx` (νέο)
-- `supabase/migrations/20261104_phase1_organizations.sql`
-- `supabase/migrations/20261104_phase0_security_fixes.sql` (null p_store)
-- `supabase/schema.sql` (null p_store)
-- `docs/ARCHITECTURE.md`
-- `docs/SECURITY_AUDIT.md`
-- `docs/IMPLEMENTATION_ROADMAP.md`
-- `docs/IMPLEMENTATION_PROGRESS.md`
-- `dinatotites.md`
+- [x] Αναπαραγωγή legacy silent filtering: άκυρο payload μπορούσε να διαγράψει το παλιό πρόγραμμα χωρίς error.
+- [x] Πλήρες validation λιστών, μήνα, ημερομηνιών, τύπων, ενεργών store members, duplicates και fairness πριν από διαγραφή.
+- [x] Αποτυχία οποιασδήποτε εγγραφής διατηρεί παλιές βάρδιες και fairness.
+- [x] Store-row lock για serialization writers. Δεν πραγματοποιήθηκε concurrent multi-connection stress test.
+- [x] Αποδοχή ενεργού store member ακόμη και όταν το home profile του ανήκει σε άλλο κατάστημα.
+- [ ] Πραγματικά split intervals, adjacent-month consistency και έλεγχοι νομικής συμμόρφωσης/στελέχωσης παραμένουν επόμενη εργασία.
 
-## Tests / checks
+### Organization membership management
 
-- `npm test` → **25 passed**.
-- `npm run build` → επιτυχία.
-- `npm run lint` → **0 errors**, 38 warnings (React Compiler/exhaustive-deps).
-- `npm audit` → **0 vulnerabilities**.
-- Phase 1.1 manual multi-store test → επιτυχία με cleanup.
+- [x] `list_organization_people`: προσωπικό μόνο του επιλεγμένου οργανισμού.
+- [x] `set_organization_member`: tenant owner ορίζει owner/admin/member ή αφαιρεί org membership. Store-scoped master support δεν δίνει org-wide authority.
+- [x] Last-active-owner guard σε demotion/removal, απενεργοποίηση, soft delete και οριστική διαγραφή profile.
+- [x] Ownership transfer αφού οριστεί δεύτερος ενεργός owner.
+- [x] `organization_audit_events`: before/after ρόλος, actor, target, timestamp· άμεσες εφαρμογικές μεταβολές του audit απορρίπτονται.
+- [x] UI με επιλογή ρόλου, confirmation, loading/errors και πρόσφατο ιστορικό. Org admins βλέπουν τα μέλη, tenant owner αλλάζει ρόλους.
+- [ ] Browser E2E και επαλήθευση με Supabase Auth/PostgREST/Realtime.
 
-## Γνωστά προβλήματα / Ανοιχτά
+### Frontend / spreadsheets
 
-- UI διαχείρισης organization memberships (προσθήκη/αφαίρεση org admins).
-- Org-only admins: το UI απαιτεί `profiles.role = admin`.
-- Master support access (reason + audit) δεν έχει υλοποιηθεί.
-- Period closing / month lock δεν έχει υλοποιηθεί.
-- Backups σε αναμονή.
-- Import validation→commit race.
-- Realtime authorization verification.
-- GitHub Pages δεν είναι κατάλληλο για εμπορικό SaaS.
-- 38 lint warnings (0 errors).
-- Καταστήματα από τη master σελίδα «Καταστήματα» δεν συνδέονται αυτόματα σε organization.
+- [x] Auth context φορτώνει `store_capabilities`: org-only admin με legacy profile role `user` αποκτά τα αντίστοιχα μενού, guards και points permissions.
+- [x] Role labels ακολουθούν τα effective δικαιώματα του ενεργού καταστήματος.
+- [x] Store switch errors εμφανίζονται και αποτυχία capability reload επιστρέφεται στον caller.
+- [x] Generation guards, ακύρωση queued auth loads και αποφυγή DB calls μέσα στο auth lock callback.
+- [x] Auth load failure εμφανίζει retry/logout αντί αέναου spinner.
+- [x] Πραγματικό multi-sheet XLSX roundtrip και quoted CSV tests, ελληνικά/αριθμοί/leading zeros.
+- [x] Απόρριψη unsupported extensions και αρχείων άνω των 10 MB πριν το parsing. Αφαίρεση `any` από dynamic spreadsheet imports.
+- [ ] Browser download/upload E2E. Το όριο συμπιεσμένου αρχείου δεν είναι πλήρης προστασία από υπερβολικό decompressed workbook.
 
-## Deployment status
+### Πρόσβαση υποστήριξης master
 
-- Phase 0: commit/push/deploy OK (tests → build → Pages).
-- Phase 1.1: commit/push/deploy OK με αυτή την παράδοση.
-- Demo βάση: migrations εφαρμοσμένα, tests καθαρίστηκαν.
-- Δεν έγινε παραγωγική διάθεση· GitHub Pages = demo.
+- [x] Μία χρονικά περιορισμένη συνεδρία ανά master, υποχρεωτικό reason, start/end/replacement και 5–60 λεπτά διάρκεια.
+- [x] Default deny σε tenant data χωρίς session, restrictive RLS και write guards ακόμη και για SECURITY DEFINER RPCs. Λήξη με server `statement_timestamp()`, ανεξάρτητα από browser/cleanup.
+- [x] Περιορισμένος platform directory, νέα-store onboarding και platform identity διαχείριση διατηρούνται χωρίς global tenant reads.
+- [x] Support audit με actor/session/store/reason και before/after master writes. Org managers βλέπουν μόνο το δικό τους ιστορικό.
+- [x] `/support`, καθολικό banner, countdown/end, καθαρισμός context σε expiry και remount cached route state. Poll/focus για αλλαγές άλλων συσκευών.
+- [x] Legacy master org memberships αγνοούνται· last-owner promotion σε master απορρίπτεται χωρίς άλλον ενεργό tenant owner.
+- [x] Backfill `order_events.store_id` και audit ολόκληρου order/event delete cascade.
+- [x] Explicit home-store FK στα profile→store joins για αποφυγή αμφίσημου PostgREST relationship μετά το `active_store_id`.
+- [ ] Hosted/browser/Realtime και multi-connection acceptance. Αναλυτικά όρια/ροές: `docs/SUPPORT_ACCESS.md`.
 
-## Επόμενη ακριβής εργασία (Phase 1.2)
+## Database migrations και σειρά διάθεσης
 
-1. **Support access**: πίνακας `support_access_sessions` (master, store, reason, started/expires/ended) + RPC start/end + audit + UI.
-2. **Organization memberships UI**: προσθήκη/αφαίρεση org admins, ρόλοι, προστασία last owner.
-3. **Org-only admin**: έκθεση `orgRole` από auth context και role-based navigation.
-4. **Period closing**: κλείδωμα μήνα, read-only reports, correction workflow.
-5. **Backups**: όταν δοθεί έγκριση/credentials.
+| Αρχείο στο `supabase/` | Κατάσταση |
+|---|---|
+| `schema.sql` | Ιστορικό baseline, μόνο για νέα εγκατάσταση |
+| `migrations/20261104_phase0_security_fixes.sql` | Προηγουμένως εφαρμοσμένο στη demo βάση |
+| `migrations/20261104_phase1_organizations.sql` | Προηγουμένως εφαρμοσμένο στη demo βάση |
+| `migrations/20261105_membership_authorization.sql` | Νέο, τοπικά ελεγμένο, **δεν εφαρμόστηκε remote** |
+| `migrations/20261105_organization_membership_management.sql` | Νέο, τοπικά ελεγμένο, **δεν εφαρμόστηκε remote** |
+| `migrations/20261105_support_access.sql` | Νέο, τοπικά ελεγμένο, **δεν εφαρμόστηκε remote** |
+| `migrations/20261105_support_access_guards.sql` | Νέο, τοπικά ελεγμένο, **δεν εφαρμόστηκε remote** |
+| `migrations/20261105_workforce_read_model.sql` | Νέο W1, τοπικά ελεγμένο, **δεν εφαρμόστηκε remote** |
+
+Για ήδη μεταφερμένη βάση εφαρμόζονται μία φορά τα πέντε νέα migrations, με την παραπάνω σειρά. Δεν επανεκτελείται το baseline ή το παλιό seed. Υπάρχουν tests διατήρησης tenant/role/membership δεδομένων και backfill του tenant scope παλιών order events χωρίς απώλεια parent links.
+
+Η διάθεση πρέπει να προηγηθεί στη βάση και να ακολουθήσει συντονισμένα το frontend: απαιτούνται `store_capabilities`, support RPCs και `read_schedule`. Το παλιό master UI δεν είναι συμβατό με το νέο default deny. Επιβεβαίωση PostgREST RPCs/relationships και smoke tests σε synthetic accounts. Το `app_private` παραμένει μη exposed.
+
+## Επαληθευμένα τοπικά checks
+
+- `npm.cmd test` → **114 passed**, 13 αρχεία:
+  - 25 αρχικά unit tests,
+  - 5 effective-permission tests,
+  - 3 spreadsheet regression tests,
+  - 30 PostgreSQL/RLS/integration tests, περιλαμβανομένης αναπαραγωγής legacy bugs.
+  - 16 support PostgreSQL/RLS tests, 3 support clock tests και 5 React/jsdom lifecycle tests.
+  - 8 W1 dates/day-model, 8 scoped read-model SQL, 5 shared Dialog και 6 Schedule/UI tests.
+- Chrome/Playwright synthetic smoke → επιτυχία desktop 1440×1000 / mobile 390×844, χωρίς πραγματικά Supabase writes.
+- `npm.cmd run build` → επιτυχία, με bundle-size warning (~721 kB main chunk).
+- `npm.cmd run lint` → **0 errors**, 37 warnings (κυρίως React effects/compiler/dependencies).
+- `npm.cmd audit --json` → **0 vulnerabilities** κατά τον έλεγχο.
+
+Το PGlite εκτελεί το πραγματικό baseline και migrations, JWT-sub fixture και `SET LOCAL ROLE authenticated`. Εξαιρούνται μόνο pgcrypto extension/Realtime publication DDL. Τα corrective migrations εφαρμόζονται πάνω σε ήδη populated synthetic δεδομένα. Δεν υποκαθιστά hosted Supabase integration ή browser E2E.
+
+## Επόμενα βήματα
+
+1. **W2 — Πραγματικά διαστήματα και ανάγκες**: store shift templates, split intervals, effective dates και ασφαλές backfill χωρίς επινόηση παλιών ωρών.
+2. W3–W5: πραγματική κάλυψη, atomic ημερήσιο save, άδειες/ledger, draft/preview/publish, ιστορική δικαιοσύνη και έλεγχος πρώτης χρήσης. Βλ. `WORKFORCE_UX_SPEC.md`.
+3. Πραγματικά browser/hosted Supabase/Realtime smoke tests με synthetic λογαριασμούς και συντονισμένη διάθεση των αντίστοιχων migrations/client.
+4. Period closing με server-side month locks/correction workflow, μετά το παραπάνω ορόσημο.
+5. C0–C3: κοινό inbox/notifications/attachments, προσωπικές Σημειώσεις με Εισερχόμενα, Προωθητικές PDF με retention και Chat καταστήματος/mobile notifications. Βλ. `COLLABORATION_MODULES_PLAN.md`.
+6. Περαιτέρω tenant-reference invariants, atomic imports, ενιαίο audit/monitoring και analytics χωρίς αυθαίρετη πρόσθεση επικαλυπτόμενων `count` κατηγοριών.
+7. Email verification/MFA και κατάλληλο SaaS hosting πριν από εμπορική διάθεση.
+
+**Backups: σε αναμονή κατόπιν οδηγίας χρήστη.** Το GitHub Pages και η σημερινή Supabase βάση παραμένουν demo/testing. Τα καταστήματα που δημιουργούνται από τη master σελίδα ακόμη δεν συνδέονται αυτόματα σε οργανισμό.

@@ -22,7 +22,7 @@ export default function Requests() {
   const load = useCallback(async () => {
     const { data } = await supabase
       .from('profiles')
-      .select('*, stores(name, code)')
+      .select('*, stores:stores!profiles_store_id_fkey(name, code)')
       .eq('active', false)
       .is('deleted_at', null)
       .order('created_at', { ascending: true })
@@ -63,11 +63,11 @@ export default function Requests() {
         eyebrow="Εγκρίσεις"
         title="Αιτήσεις εγγραφής"
         subtitle={isMaster
-          ? 'Εγκρίνετε αιτήσεις για νέα καταστήματα, υπευθύνους και υπαλλήλους.'
+          ? 'Νέα καταστήματα και αιτήσεις του καταστήματος ενεργής υποστήριξης.'
           : 'Εγκρίνετε αιτήσεις υπαλλήλων και υπευθύνων του καταστήματός σας.'}
       />
 
-      {!isAdmin && <Card><p className="text-sm text-slate-500">Δεν έχετε δικαίωμα.</p></Card>}
+      {!isAdmin && !isMaster && <Card><p className="text-sm text-slate-500">Δεν έχετε δικαίωμα.</p></Card>}
 
       {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 

@@ -128,8 +128,8 @@ export default function Import() {
       readerRef.current = reader
       setSheetNames(reader.sheetNames)
       if (reader.sheetNames.length > 0) loadSheet(reader.sheetNames[0])
-    } catch {
-      setError('Δεν ήταν δυνατή η ανάγνωση του αρχείου. Δοκίμασε .xlsx ή .csv.')
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Δεν ήταν δυνατή η ανάγνωση του αρχείου. Δοκίμασε .xlsx ή .csv.')
     }
   }
 

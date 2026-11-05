@@ -23,14 +23,14 @@ export default function Employees() {
   const load = useCallback(async () => {
     let q = supabase
       .from('profiles')
-      .select('*, stores(name, code)')
+      .select('*, stores:stores!profiles_store_id_fkey(name, code)')
       .is('deleted_at', null)
       .order('created_at', { ascending: true })
-    if (!isMaster) q = q.eq('store_id', store?.id ?? '00000000-0000-0000-0000-000000000000')
+    q = q.eq('store_id', store?.id ?? '00000000-0000-0000-0000-000000000000')
     const { data } = await q
     setRows((data as Row[]) ?? [])
     setLoading(false)
-  }, [isMaster, store])
+  }, [store])
 
   useEffect(() => { load() }, [load])
 

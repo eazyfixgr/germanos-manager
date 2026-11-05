@@ -33,12 +33,13 @@ export default function PatternSettings({
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [busy, setBusy] = useState(false)
+  const [initialState, setInitialState] = useState('')
 
   useEffect(() => {
     if (!open) return
     setError(''); setSuccess('')
     setStaff(minStaff)
-    setRows(DAYS.map((d) => {
+    const nextRows = DAYS.map((d) => {
       const p = patterns.find((x) => x.weekday === d.v)
       return {
         weekday: d.v,
@@ -48,7 +49,9 @@ export default function PatternSettings({
         end: p?.end_time ?? '21:00',
         note: p?.note ?? '',
       }
-    }))
+    })
+    setRows(nextRows)
+    setInitialState(JSON.stringify({ rows: nextRows, staff: minStaff }))
   }, [open, patterns, minStaff])
 
   function update(weekday: number, patch: Partial<Row>) {
@@ -57,6 +60,10 @@ export default function PatternSettings({
 
   async function save() {
     setError(''); setSuccess('')
+    if (rows.some((row) => !row.closed && (!row.start || !row.end || row.start >= row.end))) {
+      setError('Κάθε ανοιχτή ημέρα χρειάζεται ώρα έναρξης πριν από τη λήξη.'); return
+    }
+    if (!Number.isInteger(staff) || staff < 0) { setError('Το ημερήσιο ελάχιστο πρέπει να είναι μη αρνητικός ακέραιος.'); return }
     setBusy(true)
     const payload = rows.map((r) => ({
       store_id: storeId,
@@ -73,7 +80,7 @@ export default function PatternSettings({
     const { error: sErr } = await supabase.from('stores')
       .update({ min_staff: Math.max(0, Number(staff) || 0) }).eq('id', storeId)
     setBusy(false)
-    if (sErr) { setError(sErr.message); return }
+    if (sErr) { setError('Το ωράριο αποθηκεύτηκε, αλλά δεν ενημερώθηκε το ημερήσιο ελάχιστο. Δοκιμάστε ξανά.'); return }
     setSuccess('Αποθηκεύτηκε.')
     onSaved()
   }
@@ -87,7 +94,10 @@ export default function PatternSettings({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Ωράριο & μοτίβα ημέρας" wide>
+    <Modal open={open} onClose={onClose} title="Ωράριο & μοτίβα ημέρας" wide busy={busy}
+      dirty={Boolean(initialState) && JSON.stringify({ rows, staff }) !== initialState}
+      description="Ρυθμίσεις λειτουργίας και υφιστάμενων μοτίβων ημέρας"
+      footer={<><Button type="button" variant="secondary" onClick={onClose} disabled={busy}>Ακύρωση</Button><Button type="button" onClick={save} disabled={busy}>{busy ? 'Αποθήκευση…' : 'Αποθήκευση ρυθμίσεων'}</Button></>}>
       <ErrorBox message={error} />
       <SuccessBox message={success} />
       <p className="mb-3 text-xs text-slate-500">
@@ -151,7 +161,7 @@ export default function PatternSettings({
           <Input type="number" min={0} value={staff} onChange={(e) => setStaff(Number(e.target.value) || 0)} />
         </Field>
         <p className="mt-1 text-[11px] text-slate-500">
-          0 = επιτρέπεται να κλείσει το κατάστημα αν χρειαστεί ρεπό (π.χ. 1 υπάλληλος).
+          0 = δεν επιβάλλεται ημερήσιο ελάχιστο. Δεν αποτελεί επιβεβαίωση χρονικής κάλυψης.
         </p>
       </div>
 
@@ -165,10 +175,6 @@ export default function PatternSettings({
         </Button>
       </div>
 
-      <div className="mt-4 flex justify-end gap-2">
-        <Button variant="secondary" onClick={onClose}>Άκυρο</Button>
-        <Button onClick={save} disabled={busy}>{busy ? 'Αποθήκευση…' : 'Αποθήκευση'}</Button>
-      </div>
     </Modal>
   )
 }

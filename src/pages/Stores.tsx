@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { Button, Card, ErrorBox, Field, Input, PageHeader, SuccessBox } from '../components/ui'
@@ -7,7 +8,8 @@ import type { Store } from '../lib/types'
 const emptyForm = { name: '', code: '', address: '', phone: '', open_hours: '' }
 
 export default function Stores() {
-  const { stores, refreshProfile } = useAuth()
+  const { store, supportStores, refreshProfile } = useAuth()
+  const navigate = useNavigate()
   const [editingId, setEditingId] = useState<string | 'new'>('new')
   const [form, setForm] = useState({ ...emptyForm })
   const [error, setError] = useState('')
@@ -75,12 +77,13 @@ export default function Stores() {
 
       <div className="grid gap-4 lg:grid-cols-[1fr_1.2fr]">
         <Card>
-          <h2 className="mb-2 font-semibold text-slate-900">Λίστα ({stores.length})</h2>
+          <h2 className="mb-2 font-semibold text-slate-900">Λίστα ({supportStores.length})</h2>
+          <p className="mb-3 text-xs text-muted">Η επεξεργασία υπάρχοντος καταστήματος απαιτεί ενεργή πρόσβαση υποστήριξης σε αυτό.</p>
           <ul className="divide-y divide-slate-100">
-            {stores.map((s) => (
+            {supportStores.map((s) => (
               <li key={s.id}>
                 <button
-                  onClick={() => selectStore(s)}
+                  onClick={() => { if (store?.id === s.id) selectStore(store); else navigate(`/support?store=${encodeURIComponent(s.id)}`) }}
                   className={`w-full py-2 text-left ${editingId === s.id ? 'font-semibold text-slate-900' : 'text-slate-700'}`}
                 >
                   <div className="text-sm">{s.name}</div>
@@ -88,7 +91,7 @@ export default function Stores() {
                 </button>
               </li>
             ))}
-            {stores.length === 0 && <li className="py-2 text-sm text-slate-500">Δεν υπάρχουν καταστήματα.</li>}
+            {supportStores.length === 0 && <li className="py-2 text-sm text-slate-500">Δεν υπάρχουν καταστήματα.</li>}
           </ul>
         </Card>
 

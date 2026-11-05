@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
+import SupportBanner from './SupportBanner'
 import { supabase } from '../lib/supabase'
 
 type IconName =
@@ -115,13 +116,18 @@ function CountBadge({ n, tone }: { n: number; tone: 'red' | 'amber' }) {
 export default function Layout() {
   const {
     profile, store, stores, activeStoreId, setActiveStoreId,
-    isAdmin, isMaster, signOut,
+    isAdmin, isMaster, isPrimary, orgRole, supportSession, switching, signOut,
   } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [pending, setPending] = useState(0)
   const [reminders, setReminders] = useState(0)
   const [open, setOpen] = useState(false)
+  const [switchError, setSwitchError] = useState('')
+  const effectiveRoleLabel = isMaster ? roleLabel('master')
+    : orgRole === 'owner' ? 'Ιδιοκτήτης οργανισμού'
+    : orgRole === 'admin' ? 'Διαχειριστής οργανισμού'
+    : roleLabel(isAdmin ? 'admin' : 'user', isPrimary)
 
   useEffect(() => {
     if (!isAdmin) return
@@ -137,7 +143,7 @@ export default function Layout() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, load)
       .subscribe()
     return () => { cancelled = true; supabase.removeChannel(ch) }
-  }, [isAdmin])
+  }, [isAdmin, store?.id])
 
   useEffect(() => {
     if (!store) { setReminders(0); return }
@@ -151,7 +157,7 @@ export default function Layout() {
     }
     load()
     const ch = supabase.channel('reminder-badge')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, load)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `store_id=eq.${store.id}` }, load)
       .subscribe()
     return () => { cancelled = true; supabase.removeChannel(ch) }
   }, [store])
@@ -164,6 +170,7 @@ export default function Layout() {
     { to: '/schedule', label: 'Πρόγραμμα', icon: 'calendar', end: false },
     { to: '/tasks', label: 'Εργασίες', icon: 'check', end: false },
   ]
+  if (isMaster && !supportSession) overview.splice(1)
 
   const team: Item[] = []
   if (isAdmin) {
@@ -178,12 +185,14 @@ export default function Layout() {
   const settings: Item[] = []
   if (isMaster) {
     settings.push({ to: '/stores', label: 'Καταστήματα', icon: 'building', end: false })
+    settings.push({ to: '/support', label: 'Πρόσβαση υποστήριξης', icon: 'shield', end: false })
+    if (!isAdmin) settings.push({ to: '/requests', label: 'Νέα καταστήματα', icon: 'inbox', end: false })
     settings.push({ to: '/security', label: 'Ασφάλεια', icon: 'shield', end: false })
   } else if (isAdmin) {
     settings.push({ to: '/organization', label: 'Οργανισμός', icon: 'building', end: false })
     settings.push({ to: '/store', label: 'Κατάστημα', icon: 'store', end: false })
   }
-  settings.push({ to: '/activity', label: 'Ιστορικό', icon: 'history', end: false })
+  if (!isMaster || supportSession) settings.push({ to: '/activity', label: 'Ιστορικό', icon: 'history', end: false })
   settings.push({ to: '/account', label: 'Λογαριασμός', icon: 'user', end: false })
 
   const groups: Group[] = [
@@ -266,7 +275,7 @@ export default function Layout() {
           </span>
           <div className="min-w-0">
             <div className="truncate text-[11px] font-semibold text-white">{profile?.full_name}</div>
-            <div className="truncate text-[10px] text-slate-400">{roleLabel(profile?.role, profile?.is_primary)}</div>
+            <div className="truncate text-[10px] text-slate-400">{effectiveRoleLabel}</div>
           </div>
         </div>
       </div>
@@ -304,10 +313,15 @@ export default function Layout() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            {(isMaster || stores.length > 1) && stores.length > 0 && (
+            {!isMaster && stores.length > 1 && (
               <select
                 value={activeStoreId ?? ''}
-                onChange={(e) => setActiveStoreId(e.target.value)}
+                disabled={switching}
+                onChange={async (e) => {
+                  setSwitchError('')
+                  const result = await setActiveStoreId(e.target.value)
+                  if (result.error) setSwitchError(result.error)
+                }}
                 className="max-w-[40vw] rounded-control border border-line bg-surface px-2.5 py-2 text-xs font-medium text-ink outline-none focus:border-brand sm:max-w-none"
                 title="Ενεργό κατάστημα"
               >
@@ -320,7 +334,7 @@ export default function Layout() {
             )}
             <div className="hidden text-right sm:block">
               <div className="text-xs font-semibold leading-tight text-ink">{profile?.full_name}</div>
-              <div className="text-[10px] text-muted">{roleLabel(profile?.role, profile?.is_primary)}</div>
+              <div className="text-[10px] text-muted">{effectiveRoleLabel}</div>
             </div>
             <span className="hidden h-9 w-9 place-items-center rounded-lg bg-blue-50 text-[11px] font-bold text-brand sm:grid">
               {initials(profile?.full_name)}
@@ -338,7 +352,9 @@ export default function Layout() {
 
         <main className="flex-1 p-4 sm:p-8">
           <div className="mx-auto w-full max-w-[1690px]">
-            <Outlet />
+            {switchError && <div role="alert" className="mb-4 rounded-control border border-red-200 bg-red-50 p-3 text-sm text-red-700">{switchError}</div>}
+            <SupportBanner />
+            <Outlet key={isMaster ? supportSession?.id ?? 'platform' : activeStoreId} />
           </div>
         </main>
       </div>

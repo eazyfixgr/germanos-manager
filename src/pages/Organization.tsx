@@ -2,15 +2,14 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { Badge, Button, Card, EmptyState, ErrorBox, Field, Input, Modal, PageHeader, Spinner, SuccessBox } from '../components/ui'
-
-type OrgRole = 'owner' | 'admin' | 'member'
+import OrganizationMembers from '../components/OrganizationMembers'
+import SupportHistory from '../components/SupportHistory'
 
 const emptyForm = { name: '', code: '', address: '', phone: '', open_hours: '' }
 
 export default function Organization() {
-  const { store, stores, profile, setActiveStoreId, refreshProfile } = useAuth()
+  const { store, stores, profile, orgRole: role, setActiveStoreId, refreshProfile, switching } = useAuth()
   const [org, setOrg] = useState<{ id: string; name: string } | null>(null)
-  const [role, setRole] = useState<OrgRole | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -19,30 +18,18 @@ export default function Organization() {
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    if (!store || !profile) { setLoading(false); return }
+    if (!store?.organization_id || !profile) { setOrg(null); setLoading(false); return }
     let cancelled = false
     ;(async () => {
       setLoading(true)
-      const { data } = await supabase
-        .from('stores')
-        .select('organization_id, organizations(id,name)')
-        .eq('id', store.id)
-        .single()
-      const orgData = (data as { organizations: { id: string; name: string } | null } | null)?.organizations ?? null
-      if (cancelled) return
-      setOrg(orgData)
-      if (orgData) {
-        const { data: mem } = await supabase
-          .from('organization_memberships')
-          .select('role')
-          .eq('organization_id', orgData.id)
-          .eq('user_id', profile.id)
-          .maybeSingle()
-        if (!cancelled) setRole(((mem?.role as OrgRole | undefined) ?? null))
-      } else {
-        setRole(null)
-      }
-      if (!cancelled) setLoading(false)
+      setError(''); setOrg(null)
+      try {
+        const { data, error: loadError } = await supabase.from('organizations')
+          .select('id,name').eq('id', store.organization_id).single()
+        if (loadError) throw new Error('Δεν ήταν δυνατή η φόρτωση του οργανισμού.')
+        if (!cancelled) setOrg(data)
+      } catch (e) { if (!cancelled) setError(e instanceof Error ? e.message : 'Σφάλμα φόρτωσης.') }
+      finally { if (!cancelled) setLoading(false) }
     })()
     return () => { cancelled = true }
   }, [store, profile])
@@ -76,7 +63,9 @@ export default function Organization() {
     if (error) { setError(error.message); return }
     setModalOpen(false)
     setForm({ ...emptyForm })
-    setSuccess('Το κατάστημα δημιουργήθηκε και έγινε ενεργό.')
+    setSuccess(profile?.role === 'master'
+      ? 'Το κατάστημα δημιουργήθηκε. Για πρόσβαση απαιτείται νέα συνεδρία υποστήριξης.'
+      : 'Το κατάστημα δημιουργήθηκε και έγινε ενεργό.')
     await refreshProfile()
   }
 
@@ -134,7 +123,7 @@ export default function Organization() {
               Επίλεξε κατάστημα για να γίνει ενεργό. Τα δεδομένα των σελίδων ακολουθούν το ενεργό κατάστημα.
             </p>
             <ul className="mt-3 divide-y divide-line">
-              {stores.map((s) => (
+              {stores.filter((s) => s.organization_id === org.id).map((s) => (
                 <li key={s.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
@@ -144,7 +133,8 @@ export default function Organization() {
                     <div className="text-xs text-slate-500">{s.code ?? 'Χωρίς κωδικό'}</div>
                   </div>
                   {s.id !== store?.id && (
-                    <Button variant="secondary" className="!px-3 !py-1.5 text-xs" onClick={() => setActiveStoreId(s.id)}>
+                    <Button variant="secondary" className="!px-3 !py-1.5 text-xs" disabled={switching}
+                      onClick={async () => { const result = await setActiveStoreId(s.id); if (result.error) setError(result.error) }}>
                       Μετάβαση
                     </Button>
                   )}
@@ -155,6 +145,11 @@ export default function Organization() {
               )}
             </ul>
           </Card>
+          {canManage && profile?.role !== 'master' && <>
+            <OrganizationMembers key={org.id} organizationId={org.id}
+              canEdit={role === 'owner'} onChanged={refreshProfile} />
+            <SupportHistory organizationId={org.id} />
+          </>}
         </>
       )}
 

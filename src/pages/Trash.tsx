@@ -18,10 +18,10 @@ export default function Trash() {
   const load = useCallback(async () => {
     let q = supabase
       .from('profiles')
-      .select('*, stores(name, code)')
+      .select('*, stores:stores!profiles_store_id_fkey(name, code)')
       .not('deleted_at', 'is', null)
       .order('deleted_at', { ascending: false })
-    if (!isMaster) q = q.eq('store_id', store?.id ?? '00000000-0000-0000-0000-000000000000')
+    q = q.eq('store_id', store?.id ?? '00000000-0000-0000-0000-000000000000')
     const { data } = await q
     const list = (data as Row[]) ?? []
     setRows(list)
@@ -33,7 +33,7 @@ export default function Trash() {
       setActors(map)
     }
     setLoading(false)
-  }, [isMaster, store])
+  }, [store])
 
   useEffect(() => { load() }, [load])
 

@@ -17,7 +17,7 @@ function todayStr() {
 }
 
 export default function Targets() {
-  const { profile, store, isAdmin } = useAuth()
+  const { profile, store, isAdmin, canEditPoints } = useAuth()
   const [month, setMonth] = useState(currentMonth())
   const [storeTarget, setStoreTarget] = useState<StoreTarget | null>(null)
   const [empTargets, setEmpTargets] = useState<EmployeeTarget[]>([])
@@ -34,7 +34,7 @@ export default function Targets() {
   const [entryPoints, setEntryPoints] = useState('')
   const [entryBusy, setEntryBusy] = useState(false)
 
-  const canEdit = isAdmin || profile?.can_edit_points === true
+  const canEdit = canEditPoints
 
   const [start, next] = useMemo(() => {
     const [y, m] = month.split('-').map(Number)
@@ -110,7 +110,7 @@ export default function Targets() {
   }
 
   function canRecord(userId: string) {
-    return isAdmin || profile?.can_edit_points === true || userId === profile?.id
+    return isAdmin || canEditPoints || userId === profile?.id
   }
 
   function openPoints(p: Profile) {
