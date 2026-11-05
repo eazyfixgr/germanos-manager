@@ -21,6 +21,7 @@ export default function GenerationDialog({ storeId, month, onClose, onSaved }: {
         supabase.from('schedule_fairness').select('user_id,split_offs,short_offs').eq('store_id', storeId).lt('month', target),
       ])
       if (fairness.error || !data.can_manage) throw new Error('Δεν ήταν δυνατή η επιβεβαίωση δεδομένων και δικαιωμάτων.')
+      if (data.templates?.length || data.requirements?.length) throw new Error('Το κατάστημα χρησιμοποιεί πραγματικά διαστήματα. Η παλιά παραγωγή μήνα δεν αντικαθιστά τις νέες αναθέσεις. Χρησιμοποιήστε την ημερήσια καταχώριση μέχρι τη νέα διαδικασία draft/publish.')
       const employees = data.staff.filter((person) => person.active)
       if (employees.length === 0) throw new Error('Δεν υπάρχουν ενεργά μέλη για δημιουργία προγράμματος.')
       const initialFairness: Record<string, { split: number; short: number }> = {}

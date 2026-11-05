@@ -1,7 +1,9 @@
 import Dialog from '../Dialog'
-import { Badge, Button } from '../ui'
+import { Button } from '../ui'
 import type { ScheduleDay, StaffDay } from '../../lib/schedule/model'
-import { initials, shiftHours, shiftLabel, shiftTone } from '../../lib/schedule/model'
+import { initials, shiftHours, shiftLabel, shiftStyle, shiftTone } from '../../lib/schedule/model'
+import { resolvedSegments } from '../../lib/schedule/intervals'
+import CoveragePanel from './CoveragePanel'
 import { formatScheduleDate } from '../../lib/schedule/dates'
 
 export default function DayReview({ day, canEdit, loading, onClose, onEdit, onRequests }: {
@@ -33,13 +35,14 @@ export default function DayReview({ day, canEdit, loading, onClose, onEdit, onRe
       {[['Βάρδιες', day.working.length], ['Άδειες / ρεπό', day.away.length], ['Χωρίς ανάθεση', day.unassigned.length], ['Εκκρεμή αιτήματα', day.pending]].map(([label, value]) =>
         <div key={label} className="rounded-lg border border-line bg-white p-3 text-center"><b className="text-xl">{value}</b><span className="mt-1 block text-[10px] text-muted">{label}</span></div>)}
     </div>
+    <CoveragePanel day={day} />
     {day.issues.length > 0 && <div className="mb-4 rounded-control border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900"><strong>Σημεία για έλεγχο</strong><ul className="mt-1 list-inside list-disc space-y-1">{day.issues.map((issue) => <li key={issue}>{issue}</li>)}</ul></div>}
     <div className="grid items-start gap-4 lg:grid-cols-[1.3fr_1fr]">
       <section className="rounded-xl border border-line p-4">
         <h3 className="text-sm font-bold">Προγραμματισμένες βάρδιες</h3><p className="mt-1 text-xs text-muted">Με σειρά αποθηκευμένης ώρας έναρξης</p>
         {day.groups.length === 0 && <p className="mt-4 rounded-lg bg-slate-50 p-5 text-center text-sm text-muted">Δεν έχουν καταχωρηθεί βάρδιες.</p>}
         {day.groups.map((group) => <div key={group.type} className="mt-3 overflow-hidden rounded-xl border border-line">
-          <div className="flex items-center justify-between gap-2 bg-slate-50 p-3"><Badge className={shiftTone(group.type)}>{group.label}</Badge><span className="text-xs text-muted">{group.rows.length} άτομα</span></div>
+          <div className="flex items-center justify-between gap-2 bg-slate-50 p-3"><span style={shiftStyle(group.rows[0].shift)} className={`rounded-md px-2 py-1 text-[11px] font-semibold ${shiftTone(group.rows[0].shift?.shift_type)}`}>{group.label}</span><span className="text-xs text-muted">{group.rows.length} {group.rows.length === 1 ? 'άτομο' : 'άτομα'}</span></div>
           {group.rows.map(personRow)}
         </div>)}
       </section>
@@ -52,9 +55,6 @@ export default function DayReview({ day, canEdit, loading, onClose, onEdit, onRe
         </section>}
       </div>
     </div>
-    <p className="mt-4 rounded-control border border-blue-100 bg-blue-50/50 p-3 text-xs leading-relaxed text-slate-600">
-      Η κάλυψη χρονικών διαστημάτων δεν έχει ακόμη αξιολογηθεί. Οι τωρινές ρυθμίσεις περιγράφουν μοτίβα ημέρας και ημερήσιο ελάχιστο, όχι απαιτήσεις ανά βάρδια.
-      {day.working.some((row) => row.shift?.shift_type === 'split') && ' Στο σπαστό προβάλλεται το αποθηκευμένο εύρος· τα δύο διαστήματα δεν έχουν οριστεί ακόμη.'}
-    </p>
+    {day.working.some((row) => row.shift?.shift_type === 'split' && resolvedSegments(row.shift) === null) && <p className="mt-4 rounded-control border border-blue-100 bg-blue-50/50 p-3 text-xs leading-relaxed text-slate-600">Στο παλιό σπαστό προβάλλεται μόνο το αποθηκευμένο εύρος. Συμπληρώστε τα δύο πραγματικά διαστήματα χωρίς να επινοήσετε ώρες.</p>}
   </Dialog>
 }

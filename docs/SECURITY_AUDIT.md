@@ -7,7 +7,7 @@
 
 Οι Phase 0/1.1 παραδόθηκαν προηγουμένως. Ο επανέλεγχος επιβεβαίωσε κενά που δεν κάλυπταν τα αρχικά unit/manual tests. Οι διορθώσεις `20261105_*` είναι **τοπικές, όχι εφαρμοσμένες στη demo βάση ή deployed**. Η ένδειξη «τοπική διόρθωση» παρακάτω δεν σημαίνει ότι το live demo προστατεύεται ήδη από αυτήν.
 
-- 114 passing tests: 54 PostgreSQL/RLS integration, 16 React/jsdom, 8 W1 dates/day-model, 5 effective-permission, 3 support-clock, 3 spreadsheet και 25 αρχικά unit tests.
+- 131 passing tests: 64 PostgreSQL/RLS integration, 16 React/jsdom, 8 W1 dates/day-model, 7 W2 coverage, 5 effective-permission, 3 support-clock, 3 spreadsheet και 25 αρχικά unit tests.
 - PGlite με πραγματικό schema/migrations και synthetic actors δύο οργανισμών· authenticated role/JWT-sub fixture, όχι mock SQL assertions.
 - Corrective migrations πάνω σε populated fixture· test διατήρησης tenant/profile/membership δεδομένων.
 - Build επιτυχές, lint 0 errors/37 warnings, dependency audit 0 vulnerabilities κατά τον έλεγχο.
@@ -105,7 +105,7 @@
 
 ## Περιορισμοί και επόμενη επαλήθευση
 
-1. Εφαρμογή των πέντε νέων migrations μία φορά, με τη σειρά του `IMPLEMENTATION_PROGRESS.md`, πριν από το νέο frontend. Hosted smoke tests σε synthetic accounts.
+1. Εφαρμογή των οκτώ νέων migrations μία φορά, με τη σειρά του `IMPLEMENTATION_PROGRESS.md`, πριν από το νέο frontend. Hosted smoke tests σε synthetic accounts.
 2. Έλεγχος operational foreign references (user/category/store), remaining privileged RPCs και όλων των Realtime subscriptions. Οι συγκεκριμένες επιτυχείς δοκιμές δεν συνιστούν καθολική απόδειξη tenant isolation.
 3. Συντονισμένη διάθεση support access· το σημερινό live δεν έχει τα νέα restrictions. Ενιαίο audit/retention/monitoring παραμένει επόμενη εργασία.
 4. Month locks, atomic import/conflict detection, ασφαλές workforce draft/publish και non-additive category analytics.
@@ -121,3 +121,11 @@
 - SQL tests: cross-store/invalid windows, own projection, overlapping periods, redaction, org-only managers, inactive/revoked actors και master support end.
 - Frontend αλλάζει cache key και κρύβει παλιό payload σε αλλαγή scope/περιόδου. Αποτυχημένο write διατηρεί τις τιμές και δεν εμφανίζει επιτυχία.
 - Τα transactional leave approval/revoke/ledger και approved-absence invariants όλων των write paths παραμένουν W3· τα νέα UI guards δεν παρουσιάζονται ως πλήρης DB εγγύηση.
+
+## SEC-29 — W2 διαστήματα, ανάγκες και stale writes
+
+- Server validation: μη επικαλυπτόμενα/έγκυρα διαστήματα, τύπος σπαστού με δύο διαστήματα και κενό, store membership του εργαζομένου, εγκεκριμένη απουσία και ωράριο/κλειστή ημέρα.
+- `save_shift_assignment`/ρυθμίσεις: store-row lock μετά τον έλεγχο δικαιωμάτων, revision checks, ημερομηνίες ισχύος, no rewriting παλιών snapshots, archive αντί destructive delete.
+- `replace_month_shifts` δεν μπορεί να αντικαταστήσει κατάστημα με διαστήματα/νεότερες αναθέσεις· το `read_schedule` επιστρέφει πραγματικά segments/ρυθμίσεις.
+- Backfill γεμίζει μόνο σαφή μεμονωμένα historical ωράρια· τα παλιά σπαστά χωρίς γνωστά διαστήματα μένουν unresolved και δεν προσμετρώνται ως κάλυψη.
+- Tests: 10 W2 SQL, 7 coverage unit, synthetic Chrome W2. Εκκρεμούν hosted PostgREST/Realtime, πραγματικά δεδομένα demo και time-aware generation/publish (W4).

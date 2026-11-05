@@ -1,6 +1,6 @@
 # Πρόγραμμα & άδειες — οδηγός UX και λειτουργικής αναβάθμισης
 
-Ημερομηνία: 5 Νοεμβρίου 2026. Κατάσταση: **W1 υλοποιημένο τοπικά**, W2–W5 προς υλοποίηση. Ακριβές παραδοτέο/όρια/έλεγχοι στο [WORKFORCE_W1_PROGRESS.md](WORKFORCE_W1_PROGRESS.md). Δεν έχει γίνει remote εφαρμογή/deploy.
+Ημερομηνία: 5 Νοεμβρίου 2026. Κατάσταση: **W1 και W2 core υλοποιημένα τοπικά**, W3–W5 προς υλοποίηση. Λεπτομέρειες: [WORKFORCE_W1_PROGRESS.md](WORKFORCE_W1_PROGRESS.md), [WORKFORCE_W2_PROGRESS.md](WORKFORCE_W2_PROGRESS.md). Δεν έχει γίνει remote εφαρμογή/deploy.
 
 ## 1. Αναφορά και προτεραιότητα
 
@@ -128,10 +128,11 @@
 - Date helpers και bounded period queries, active store staff projection χωρίς email/τηλέφωνα ή ιδιωτικές αιτιολογίες άδειας.
 - Read-only μηνιαία/εβδομαδιαία εικόνα πάνω στα πραγματικά δεδομένα. Άγνωστη κάλυψη εμφανίζεται ως άγνωστη μέχρι να υπάρχουν σωστές ανάγκες.
 
-### W2 — Διαστήματα βαρδιών και ανάγκες
-- Additive migrations για templates/intervals/requirements, effective dates και backfill με διατήρηση παλιών IDs.
-- Legacy βάρδιες με άγνωστο σπαστό διάστημα επισημαίνονται για συμπλήρωση· δεν επινοούνται ώρες από το demo.
-- Προσαρμογή projection/εργασιών/exports στους νέους χρόνους, χωρίς να χαθεί η υπάρχουσα λειτουργικότητα.
+### W2 — Διαστήματα βαρδιών και ανάγκες (core τοπικά)
+- [x] Versioned templates/intervals/requirements, effective dates και ασφαλές backfill χωρίς αλλαγή παλιών IDs/τιμών.
+- [x] Legacy σπαστά με άγνωστο διάστημα επισημαίνονται ως unresolved· δεν επινοούνται ώρες από το demo.
+- [x] Exports/UI χρησιμοποιούν πραγματικά διαστήματα. Time-aware auto-generation και draft/publish παραμένουν W4, με την παλιά παραγωγή να μην αντικαθιστά διαστήματα.
+- Αναλυτικά παραδοτέο/όρια: `WORKFORCE_W2_PROGRESS.md`.
 
 ### W3 — Ημέρα και άδειες από άκρη σε άκρη
 - Atomic day save, leave estimate/review/revoke, ledger και snapshots, προστασία εγκεκριμένων απουσιών σε κάθε write path.

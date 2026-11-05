@@ -62,7 +62,10 @@
 2. `20261105_organization_membership_management.sql`
 3. `20261105_support_access.sql`
 4. `20261105_support_access_guards.sql`
-5. `20261105_workforce_read_model.sql` (νέο W1 Πρόγραμμα, εξαρτάται από τα παραπάνω support/access helpers)
+5. `20261105_workforce_read_model.sql` (W1 Πρόγραμμα, εξαρτάται από τα παραπάνω support/access helpers)
+6. `20261105_workforce_w2_01_intervals.sql`
+7. `20261105_workforce_w2_02_configuration.sql`
+8. `20261105_workforce_w2_03_assignments.sql`
 
 Εκτέλεση μία φορά και **πριν από το αντίστοιχο frontend**. Το παλιό master UI δεν είναι συμβατό με τη νέα default-deny συμπεριφορά· απαιτείται συντονισμένη διάθεση βάσης/client. Το `app_private` δεν πρέπει να προστεθεί στα exposed PostgREST schemas.
 

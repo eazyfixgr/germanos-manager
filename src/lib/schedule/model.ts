@@ -1,6 +1,8 @@
 import type { LeaveRequest, Shift, StoreCalendarDay, StorePattern } from '../types'
 import { SHIFT_TYPE } from '../constants'
 import { weekday } from './dates'
+import { formatSegments, resolvedSegments, type ShiftTemplate, type StaffingRequirement } from './intervals'
+import { evaluateCoverage, type DayCoverage } from './coverage'
 
 export type ScheduleScope = 'own' | 'team'
 export interface ScheduleStaff { id: string; full_name: string; active: boolean }
@@ -8,6 +10,7 @@ export interface ScheduleData {
   store_id: string; start: string; end: string; scope: ScheduleScope; can_manage: boolean; min_staff: number
   staff: ScheduleStaff[]; shifts: Shift[]; leaves: LeaveRequest[]
   patterns: StorePattern[]; calendar: StoreCalendarDay[]
+  workforce_schema?: number; templates?: ShiftTemplate[]; requirements?: StaffingRequirement[]
 }
 export type DayStatus = 'work' | 'repo' | 'adeia' | 'unassigned' | 'closed'
 export interface StaffDay {
@@ -18,6 +21,7 @@ export interface ScheduleDay {
   date: string; opening: 'open' | 'closed' | 'unknown'; hours: string | null
   rows: StaffDay[]; working: StaffDay[]; away: StaffDay[]; unassigned: StaffDay[]
   pending: number; issues: string[]; groups: { type: string; label: string; rows: StaffDay[] }[]
+  coverage?: DayCoverage
 }
 
 export function shiftLabel(type?: string): string {
@@ -32,8 +36,13 @@ export function shiftTone(type?: string): string {
   if (type === 'adeia') return 'bg-rose-50 text-rose-700'
   return SHIFT_TYPE[type as keyof typeof SHIFT_TYPE]?.color ?? 'bg-slate-50 text-slate-500'
 }
+export function shiftStyle(shift?: Shift) {
+  const color = shift?.template_color
+  return color && /^#[0-9a-f]{6}$/i.test(color) ? { color, backgroundColor: `${color}18` } : undefined
+}
 export function shiftHours(shift?: Shift): string {
   if (!shift || shift.shift_type === 'repo' || shift.shift_type === 'adeia') return '—'
+  if (shift.segments?.length) return formatSegments(shift.segments)
   if (!shift.start_time || !shift.end_time) return 'Χωρίς ορισμένες ώρες'
   const range = `${shift.start_time.slice(0, 5)}–${shift.end_time.slice(0, 5)}`
   return shift.shift_type === 'split' ? `${range} · εύρος σπαστού` : range
@@ -79,14 +88,17 @@ export function buildDay(data: ScheduleData, date: string, minStaff = 0): Schedu
   if (opening === 'closed' && working.length) issues.add('Υπάρχουν βάρδιες σε κλειστή ημέρα.')
   if (opening !== 'closed' && unassigned.length) issues.add(`${unassigned.length} άτομα χωρίς ανάθεση.`)
   if (working.some((row) => !row.shift?.start_time || !row.shift.end_time)) issues.add('Υπάρχουν βάρδιες χωρίς ορισμένες ώρες.')
+  if (working.some((row) => row.shift?.shift_type === 'split' && resolvedSegments(row.shift) === null)) issues.add('Χρειάζονται τα δύο πραγματικά διαστήματα σπαστού.')
   if (data.scope === 'team' && opening === 'open' && minStaff > working.length) issues.add('Κάτω από το ημερήσιο ελάχιστο προσωπικού.')
   const groups: ScheduleDay['groups'] = []
   for (const row of working) {
-    const type = row.shift!.shift_type
+    const type = row.shift!.template_id ?? row.shift!.shift_type
     const group = groups.find((item) => item.type === type)
     if (group) group.rows.push(row)
-    else groups.push({ type, label: shiftLabel(type), rows: [row] })
+    else groups.push({ type, label: row.shift!.template_name ?? shiftLabel(type), rows: [row] })
   }
-  return { date, opening, hours, rows, working, away, unassigned,
+  const day: ScheduleDay = { date, opening, hours, rows, working, away, unassigned,
     pending: relevant.filter((leave) => leave.status === 'pending').length, issues: [...issues], groups }
+  day.coverage = evaluateCoverage(day, data.requirements ?? [], data.scope === 'team')
+  return day
 }

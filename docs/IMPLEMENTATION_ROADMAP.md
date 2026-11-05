@@ -57,7 +57,7 @@
 - [x] Σελίδα **Οργανισμός** με λίστα καταστημάτων και δημιουργία νέου.
 - [x] Τοπικό UI διαχείρισης org memberships, owner-only RPC, last-owner guards και role audit.
 - [x] Τοπικό org-only admin UI με effective store capabilities αντί legacy profile role.
-- [ ] Συντονισμένη εφαρμογή των πέντε migrations `20261105_*` και hosted acceptance πριν client deployment.
+- [ ] Συντονισμένη εφαρμογή των οκτώ migrations `20261105_*` και hosted acceptance πριν client deployment.
 - [x] Τοπική πρόσβαση υποστήριξης με reason/TTL/start/end, default-deny RLS/RPC guards και before/after audit.
 - [x] React/jsdom lifecycle tests για support start/end/expiry, άλλο tab και logout races.
 - [ ] Ενιαίο audit events (actor, tenant, before/after, reason).
@@ -70,7 +70,7 @@
 
 - [x] Μελέτη παρεχόμενου demo και καταγραφή UX/gap analysis στο `WORKFORCE_UX_SPEC.md` (προδιαγραφή, όχι UI delivery).
 - [x] W1 τοπικά: shared dialogs, date/read-model helpers, μήνας/εβδομάδα/ημέρα, scoped own/team view και Chrome synthetic desktop/mobile smoke. Όρια/αποδοχή: `WORKFORCE_W1_PROGRESS.md`.
-- [ ] W2: store shift templates, πραγματικά intervals/σπαστό, ανάγκες στελέχωσης και ασφαλές legacy backfill.
+- [x] W2 core τοπικά: store shift templates/εκδόσεις, πραγματικά intervals/σπαστό, ανάγκες στελέχωσης, revision-safe αναθέσεις και ασφαλές legacy backfill. Time-aware auto-generation/publish παραμένει W4. Αναλυτικά: `WORKFORCE_W2_PROGRESS.md`.
 - [ ] W3: ημερήσιο dialog, atomic save και ολοκληρωμένο leave estimate/approval/revoke/ledger με προστασία εγκεκριμένων απουσιών.
 - [ ] W4: draft, interval coverage, εξηγήσιμες προτάσεις, ιστορική δικαιοσύνη, πραγματικά όρια εβδομάδων και publish με revision checks.
 - [ ] W5: desktop/mobile/keyboard και δοκιμές πρώτης χρήσης χωρίς προφορική καθοδήγηση, με διορθώσεις στα ευρήματα.

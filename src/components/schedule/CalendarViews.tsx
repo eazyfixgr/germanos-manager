@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import type { ScheduleData, ScheduleDay } from '../../lib/schedule/model'
-import { buildDay, shiftHours, shiftLabel, shiftTone } from '../../lib/schedule/model'
+import { buildDay, shiftHours, shiftLabel, shiftStyle, shiftTone } from '../../lib/schedule/model'
 import { formatScheduleDate, WEEKDAYS, weekday } from '../../lib/schedule/dates'
 import './schedule.css'
 
@@ -33,13 +33,15 @@ export function MonthCalendar({ dates, month, selected, today, days, onHighlight
           <span className="schedule-day-hours">{day.opening === 'closed' ? 'Κλειστό' : day.hours ? <><span className="hidden sm:inline">{day.hours}</span><span className="sm:hidden">{day.hours.replace(/:00/g, '')}</span></> : 'Ωράριο μη ορισμένο'}</span>
           {day.away.length > 0 && <span className="schedule-day-away"><span className="hidden sm:inline">{day.away.length} άδεια / ρεπό</span><span className="sm:hidden">{day.away.length} απ./ρεπό</span></span>}
           <span className="schedule-day-shifts">
-            {day.groups.slice(0, 3).map((group) => <span key={group.type} className={`schedule-shift-mini ${shiftTone(group.type)}`} title={group.label}><span>{short[group.type] ?? group.label.slice(0, 2)}</span><b>{group.rows.length}</b></span>)}
+            {day.groups.slice(0, 3).map((group) => <span key={group.type} style={shiftStyle(group.rows[0].shift)} className={`schedule-shift-mini ${shiftTone(group.rows[0].shift?.shift_type)}`} title={group.label}><span>{group.rows[0].shift?.template_short_label ?? short[group.type] ?? group.label.slice(0, 2)}</span><b>{group.rows.length}</b></span>)}
             {day.groups.length > 3 && <span className="schedule-more">+{day.groups.length - 3} τύποι</span>}
             {day.working.length === 0 && <span className="schedule-no-shift">{day.opening === 'closed' ? 'Χωρίς εργασία' : 'Χωρίς βάρδιες'}</span>}
           </span>
-          <span className={`schedule-day-status ${day.issues.length ? 'has-issues' : ''}`}>
+          <span className={`schedule-day-status ${day.issues.length || day.coverage?.status === 'missing' || day.coverage?.status === 'partial' ? 'has-issues' : day.coverage?.status === 'covered' ? 'is-covered' : ''}`}>
             {day.issues.length ? `${day.unassigned.length ? `${day.unassigned.length} χωρίς ανάθεση` : 'Χρειάζεται έλεγχο'}`
-              : day.opening === 'closed' ? 'Κλειστή ημέρα' : <><span className="hidden sm:inline">Κάλυψη μη αξιολογημένη</span><span className="sm:hidden">Κάλυψη —</span></>}
+              : day.coverage?.status === 'covered' ? 'Κάλυψη αναγκών' : day.coverage?.status === 'missing' ? 'Ελλείψεις κάλυψης'
+                : day.coverage?.status === 'partial' ? 'Έλεγχος αναγκών' : day.opening === 'closed' ? 'Κλειστή ημέρα'
+                  : <><span className="hidden sm:inline">Κάλυψη μη αξιολογημένη</span><span className="sm:hidden">Κάλυψη —</span></>}
           </span>
           {day.pending > 0 && <span className="schedule-pending">{day.pending} εκκρεμείς αιτήσεις</span>}
         </button>
@@ -63,7 +65,7 @@ export function WeekCalendar({ dates, data, today, filter, onOpen, minStaff }: {
           const row = day.rows.find((item) => item.person.id === person.id)
           const type = row?.status === 'work' ? row.shift?.shift_type : row?.status
           return <td key={day.date}><button type="button" className="schedule-week-cell" onClick={() => onOpen(day.date)} aria-label={`${person.full_name}, ${formatScheduleDate(day.date)}, ${shiftLabel(type)}`}>
-            <span className={`inline-flex rounded-md px-2 py-1 text-[11px] font-semibold ${shiftTone(type)}`}>{row ? shiftLabel(type) : '—'}</span>
+            <span style={row?.status === 'work' ? shiftStyle(row.shift) : undefined} className={`inline-flex rounded-md px-2 py-1 text-[11px] font-semibold ${shiftTone(type)}`}>{row ? row.status === 'work' ? row.shift?.template_name ?? shiftLabel(type) : shiftLabel(type) : '—'}</span>
             {row?.status === 'work' && <small>{shiftHours(row.shift)}</small>}
             {row?.approved && <small>Εγκεκριμένη απουσία</small>}
             {row?.conflict && <small className="!text-amber-700">Ασυμφωνία βάρδιας</small>}

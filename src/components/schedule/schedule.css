@@ -23,6 +23,7 @@
 .schedule-no-shift,.schedule-more { font-size:10px; color:#64748b }
 .schedule-day-status { font-size:10px; color:#64748b; line-height:1.35 }
 .schedule-day-status.has-issues { color:#a16207; font-weight:650 }
+.schedule-day-status.is-covered { color:#087f63; font-weight:650 }
 .schedule-pending { font-size:9px; font-weight:650; color:#435da1 }
 .schedule-week-scroll { overflow:auto }
 .schedule-week-table { border-collapse:separate; border-spacing:0; width:100%; min-width:1050px; table-layout:fixed; text-align:left }

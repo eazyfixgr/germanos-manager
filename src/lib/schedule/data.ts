@@ -15,5 +15,6 @@ export async function readSchedule(storeId: string, range: DateRange, scope: Sch
     || !['staff', 'shifts', 'leaves', 'patterns', 'calendar'].every((key) => Array.isArray(data[key]))) {
     throw new Error('Η απάντηση προγράμματος δεν αντιστοιχεί στην επιλεγμένη περίοδο.')
   }
+  if (data.workforce_schema === 2 && (!Array.isArray(data.templates) || !Array.isArray(data.requirements))) throw new Error('Ελλιπή δεδομένα ρυθμίσεων διαστημάτων.')
   return data as ScheduleData
 }

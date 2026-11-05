@@ -8,7 +8,7 @@ import { exportSchedule } from '../lib/schedule/export'
 import { Button, Card, EmptyState, ErrorBox, Input, MetricCard, PageHeader, SuccessBox } from '../components/ui'
 import { MonthCalendar, WeekCalendar } from '../components/schedule/CalendarViews'
 import DayReview from '../components/schedule/DayReview'
-import PatternSettings from '../components/schedule/PatternSettings'
+import WorkforceSettings from '../components/schedule/WorkforceSettings'
 import GenerationDialog from '../components/schedule/GenerationDialog'
 import ShiftEditor from '../components/schedule/ShiftEditor'
 import { LeaveRequestForm, LeaveRequests } from '../components/schedule/LeaveRequests'
@@ -37,7 +37,9 @@ export default function Schedule() {
   const { data, loading, error, reload } = useScheduleData(store?.id, range, scope)
   const days = useMemo(() => new Map(data ? dates.map((date) => [date, buildDay(data, date, data.min_staff)]) : []), [data, dates])
   const currentDays = periodDates.map((date) => days.get(date)).filter((day) => day !== undefined)
-  const reviewDays = currentDays.filter((day) => day.issues.length > 0)
+  const reviewDays = currentDays.filter((day) => day.issues.length > 0 || day.coverage?.status === 'missing' || day.coverage?.status === 'partial')
+  const evaluated = currentDays.filter((day) => day.coverage?.status === 'covered' || day.coverage?.status === 'missing').length
+  const covered = currentDays.filter((day) => day.coverage?.status === 'covered').length
   const canManage = isAdmin && data?.can_manage === true
   const canRequest = !isMaster && Boolean(data?.staff.some((person) => person.id === profile?.id && person.active))
   const selectedDay = days.get(selected)
@@ -62,7 +64,7 @@ export default function Schedule() {
       actions={<>
         <Button type="button" variant="secondary" onClick={() => setRequestsOpen(true)} disabled={!data || loading}><ScheduleIcon name="calendar" />Άδειες & ρεπό{pending ? ` (${pending})` : ''}</Button>
         <Button type="button" variant="secondary" onClick={() => data && exportSchedule(data, periodDates)} disabled={!data || loading}><ScheduleIcon name="download" />Εξαγωγή</Button>
-        {canManage && <Button type="button" variant="secondary" onClick={() => setPatternOpen(true)} disabled={loading}><ScheduleIcon name="settings" />Ωράριο</Button>}
+        {canManage && <Button type="button" variant="secondary" onClick={() => setPatternOpen(true)} disabled={loading}><ScheduleIcon name="settings" />Ρυθμίσεις βαρδιών</Button>}
         {canManage ? <Button type="button" onClick={() => setGenerationOpen(true)} disabled={loading}><ScheduleIcon name="generate" />Δημιουργία προγράμματος</Button>
           : canRequest && <Button type="button" onClick={() => setNewRequest(true)} disabled={loading}><ScheduleIcon name="plus" />Νέα αίτηση</Button>}
       </>} />
@@ -72,7 +74,7 @@ export default function Schedule() {
     <SuccessBox message={success} />
 
     <div className="schedule-metrics grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4" aria-busy={loading}>
-      <MetricCard label="Κάλυψη ημερών" value={<span className="text-base sm:text-lg">Μη αξιολογημένη</span>} detail="Απαιτούνται ανάγκες ανά χρονικό διάστημα" icon={<ScheduleIcon name="calendar" />} />
+      <MetricCard label="Κάλυψη ημερών" value={evaluated ? `${covered} / ${evaluated}` : <span className="text-base sm:text-lg">Μη αξιολογημένη</span>} detail={evaluated ? 'Αξιολογημένες ημέρες με δηλωμένες ανάγκες' : 'Απαιτούνται ανάγκες και πραγματικά διαστήματα'} icon={<ScheduleIcon name="calendar" />} />
       <MetricCard label="Βάρδιες εργασίας" value={data ? currentDays.reduce((sum, day) => sum + day.working.length, 0) : '—'} detail="Χωρίς τις εγκεκριμένες απουσίες" icon={<ScheduleIcon name="people" />} />
       <MetricCard label="Ημέρες για έλεγχο" value={data ? reviewDays.length : '—'} detail="Αναθέσεις, ώρες και ασυμφωνίες" accent="amber" icon={<ScheduleIcon name="warning" />} />
       <MetricCard label="Ρεπό / άδειες" value={data ? currentDays.reduce((sum, day) => sum + day.away.length, 0) : '—'} detail="Ημέρες απουσίας · όχι χρέωση άδειας" accent="purple" icon={<ScheduleIcon name="clock" />} />
@@ -119,15 +121,15 @@ export default function Schedule() {
       </Card>
       <Card><h2 className="text-sm font-bold">Σημεία προσοχής</h2><p className="mt-1 text-xs text-muted">Ενδείξεις από τις καταχωρήσεις της περιόδου</p>
         {reviewDays.length === 0 ? <p className="mt-4 text-sm text-muted">Δεν εντοπίστηκαν ασυμφωνίες στις φορτωμένες αναθέσεις. Η χρονική κάλυψη παραμένει μη αξιολογημένη.</p>
-          : <ul className="mt-3 space-y-3">{reviewDays.slice(0, 3).map((day) => <li key={day.date}><button type="button" onClick={() => openDay(day.date)} className="text-left text-xs leading-relaxed text-slate-600 hover:text-brand"><b>{formatScheduleDate(day.date)}</b> · {day.issues[0]}</button></li>)}</ul>}
+          : <ul className="mt-3 space-y-3">{reviewDays.slice(0, 3).map((day) => <li key={day.date}><button type="button" onClick={() => openDay(day.date)} className="text-left text-xs leading-relaxed text-slate-600 hover:text-brand"><b>{formatScheduleDate(day.date)}</b> · {day.issues[0] ?? day.coverage?.label}</button></li>)}</ul>}
       </Card>
     </div>}
 
     {data && dayOpen && selectedDay && <DayReview day={selectedDay} canEdit={canManage} loading={loading} onClose={() => setDayOpen(false)} onEdit={setEditing} onRequests={() => setRequestsOpen(true)} />}
-    {data && editing && canManage && <ShiftEditor key={`${editing.person.id}-${selected}`} storeId={store.id} date={selected} row={editing} closed={selectedDay?.opening === 'closed'} openingHours={selectedDay?.hours} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); saved('Η βάρδια αποθηκεύτηκε.') }} />}
+    {data && editing && canManage && <ShiftEditor key={`${editing.person.id}-${selected}`} storeId={store.id} date={selected} row={editing} templates={data.templates} closed={selectedDay?.opening === 'closed'} openingHours={selectedDay?.hours} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); saved('Η βάρδια αποθηκεύτηκε.') }} />}
     {data && requestsOpen && profile && <LeaveRequests data={data} range={period} actorId={profile.id} canManage={canManage} canRequest={canRequest} onClose={() => setRequestsOpen(false)} onNew={() => setNewRequest(true)} onChanged={() => saved('Η κατάσταση της αίτησης ενημερώθηκε.')} />}
     {newRequest && profile && canRequest && <LeaveRequestForm storeId={store.id} userId={profile.id} initialDate={selected} onClose={() => setNewRequest(false)} onSaved={() => { setNewRequest(false); saved('Η αίτηση υποβλήθηκε για έγκριση.') }} />}
-    {data && patternOpen && canManage && <PatternSettings open onClose={() => setPatternOpen(false)} storeId={store.id} patterns={data.patterns} minStaff={data.min_staff} onSaved={() => { setPatternOpen(false); saved('Οι ρυθμίσεις αποθηκεύτηκαν.') }} />}
+    {data && patternOpen && canManage && <WorkforceSettings data={data} onClose={() => setPatternOpen(false)} onChanged={() => saved('Οι ρυθμίσεις ενημερώθηκαν.')} />}
     {generationOpen && canManage && <GenerationDialog storeId={store.id} month={cursor.slice(0, 7)} onClose={() => setGenerationOpen(false)} onSaved={(message) => { setGenerationOpen(false); saved(message) }} />}
   </div>
 }

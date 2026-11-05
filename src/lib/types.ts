@@ -103,6 +103,13 @@ export interface Shift {
   start_time: string | null
   end_time: string | null
   note: string | null
+  template_id?: string | null
+  template_code?: string | null
+  template_name?: string | null
+  template_short_label?: string | null
+  template_color?: string | null
+  segments?: { start: string; end: string }[] | null
+  revision?: number
 }
 
 export type LeaveStatus = 'pending' | 'approved' | 'rejected'

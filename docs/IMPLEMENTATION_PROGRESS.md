@@ -4,12 +4,12 @@
 
 ## Τρέχουσα κατάσταση
 
-**Phase 1.2 + Workforce W1 — authorization/support και νέα βασική εμπειρία Προγράμματος: τοπική υλοποίηση.**
+**Phase 1.2 + Workforce W1/W2 — authorization/support, νέα εμπειρία Προγράμματος και πραγματικά διαστήματα/ανάγκες: τοπική υλοποίηση.**
 
 - Οι Phase 0/1.1 παραδόθηκαν προηγουμένως (`9edc2dd`, `9ea6643`). Ο επανέλεγχος εντόπισε ουσιαστικά κενά· οι παλιές σημάνσεις «ολοκληρωμένο/ελεγμένο» δεν αποτελούν πλήρη πιστοποίηση ασφάλειας.
 - Οι διορθώσεις και τα νέα tests βρίσκονται στο working tree. Δεν έγινε νέο commit, push, deploy ή εφαρμογή migration στη demo βάση στην παρούσα εργασία.
 - Ο χρήστης ζήτησε commit/push πριν το W2. Η παράδοση προετοιμάζεται στο branch `feat/workforce-foundation`, επειδή το `main` ενεργοποιεί Pages deploy ενώ εκκρεμούν τα migrations. Η remote βάση δεν μεταβλήθηκε.
-- Τα πέντε νέα migrations ελέγχθηκαν τοπικά σε PostgreSQL/PGlite με synthetic λογαριασμούς. Frontend: TypeScript/build, React/jsdom και πραγματικό Chrome desktop/mobile με synthetic transport. Hosted Supabase/Realtime acceptance εκκρεμεί.
+- Τα οκτώ νέα migrations ελέγχθηκαν τοπικά σε PostgreSQL/PGlite με synthetic λογαριασμούς. Frontend: TypeScript/build, React/jsdom και πραγματικό Chrome desktop/mobile με synthetic transport. Hosted Supabase/Realtime acceptance εκκρεμεί.
 - Η συνολική Phase 1.2 παραμένει ανοιχτή: period closing και deployment acceptance εκκρεμούν.
 - Νέα οδηγία χρήστη: **προηγείται η αναβάθμιση Προγράμματος/αδειών και παραθύρων σύμφωνα με το δοσμένο HTML demo**, πριν ξεκινήσει το period closing. Οι νέες ενότητες συνεργασίας καταγράφηκαν στο roadmap ως μελλοντική υλοποίηση.
 
@@ -21,7 +21,8 @@
 - [x] Κύκλος Προωθητικών: PDF μέσα στη σελίδα, προαιρετικό κείμενο επάνω, βέλη προηγούμενης/επόμενης ενέργειας, έναρξη/λήξη, Αρχείο για τρεις ημερολογιακούς μήνες και πραγματική διαγραφή PDF/metadata από server job.
 - [x] Ενημερωμένες αποφάσεις/roadmap και κριτήρια αποδοχής πρώτης χρήσης χωρίς προφορική καθοδήγηση.
 - [x] W1 τοπικά: shared dialogs, scoped read model, μήνας/εβδομάδα, ημερήσια ανάλυση, προσωπική/ομαδική προβολή, CSV και διατηρημένες legacy ενέργειες. Αναλυτικά: `docs/WORKFORCE_W1_PROGRESS.md`.
-- [ ] W2–W5: intervals/ανάγκες, ολοκληρωμένο transactional leave workflow, αποθηκευμένα drafts/publish και πλήρης αξιολόγηση πρώτης χρήσης.
+- [x] W2 core τοπικά: τύποι/εκδόσεις βαρδιών, πραγματικά διαστήματα, ανάγκες στελέχωσης, revision-safe αναθέσεις και χρονική κάλυψη. Αναλυτικά: `docs/WORKFORCE_W2_PROGRESS.md`.
+- [ ] W3–W5: ολοκληρωμένο transactional leave workflow, αποθηκευμένα drafts/publish και πλήρης αξιολόγηση πρώτης χρήσης.
 - [ ] Υλοποίηση C0–C3 μετά το άμεσο ορόσημο, με προτεινόμενη αλληλουχία inbox/notifications → Σημειώσεις → Προωθητικές → Chat/mobile push.
 
 Το W1 ελέγχθηκε με SQL, unit/component και Chrome synthetic browser scenarios. Δεν έγινε remote migration/deploy ή μεταβολή πραγματικών λογαριασμών.
@@ -101,31 +102,35 @@
 | `migrations/20261105_support_access.sql` | Νέο, τοπικά ελεγμένο, **δεν εφαρμόστηκε remote** |
 | `migrations/20261105_support_access_guards.sql` | Νέο, τοπικά ελεγμένο, **δεν εφαρμόστηκε remote** |
 | `migrations/20261105_workforce_read_model.sql` | Νέο W1, τοπικά ελεγμένο, **δεν εφαρμόστηκε remote** |
+| `migrations/20261105_workforce_w2_01_intervals.sql` | Νέο W2, τοπικά ελεγμένο, **δεν εφαρμόστηκε remote** |
+| `migrations/20261105_workforce_w2_02_configuration.sql` | Νέο W2, τοπικά ελεγμένο, **δεν εφαρμόστηκε remote** |
+| `migrations/20261105_workforce_w2_03_assignments.sql` | Νέο W2, τοπικά ελεγμένο, **δεν εφαρμόστηκε remote** |
 
-Για ήδη μεταφερμένη βάση εφαρμόζονται μία φορά τα πέντε νέα migrations, με την παραπάνω σειρά. Δεν επανεκτελείται το baseline ή το παλιό seed. Υπάρχουν tests διατήρησης tenant/role/membership δεδομένων και backfill του tenant scope παλιών order events χωρίς απώλεια parent links.
+Για ήδη μεταφερμένη βάση εφαρμόζονται μία φορά τα οκτώ νέα migrations, με την παραπάνω σειρά. Δεν επανεκτελείται το baseline ή το παλιό seed. Υπάρχουν tests διατήρησης tenant/role/membership δεδομένων και backfill του tenant scope παλιών order events χωρίς απώλεια parent links.
 
 Η διάθεση πρέπει να προηγηθεί στη βάση και να ακολουθήσει συντονισμένα το frontend: απαιτούνται `store_capabilities`, support RPCs και `read_schedule`. Το παλιό master UI δεν είναι συμβατό με το νέο default deny. Επιβεβαίωση PostgREST RPCs/relationships και smoke tests σε synthetic accounts. Το `app_private` παραμένει μη exposed.
 
 ## Επαληθευμένα τοπικά checks
 
-- `npm.cmd test` → **114 passed**, 13 αρχεία:
+- `npm.cmd test` → **131 passed**, 15 αρχεία:
   - 25 αρχικά unit tests,
   - 5 effective-permission tests,
   - 3 spreadsheet regression tests,
   - 30 PostgreSQL/RLS/integration tests, περιλαμβανομένης αναπαραγωγής legacy bugs.
   - 16 support PostgreSQL/RLS tests, 3 support clock tests και 5 React/jsdom lifecycle tests.
   - 8 W1 dates/day-model, 8 scoped read-model SQL, 5 shared Dialog και 6 Schedule/UI tests.
-- Chrome/Playwright synthetic smoke → επιτυχία desktop 1440×1000 / mobile 390×844, χωρίς πραγματικά Supabase writes.
-- `npm.cmd run build` → επιτυχία, με bundle-size warning (~721 kB main chunk).
-- `npm.cmd run lint` → **0 errors**, 37 warnings (κυρίως React effects/compiler/dependencies).
+  - 7 W2 coverage unit tests, 10 W2 PostgreSQL interval/configuration/assignment tests και 15 επιπλέον W2 SQL/UI συνολικά.
+- Chrome/Playwright synthetic smoke → επιτυχία desktop 1440×1000 / mobile 390×844, χωρίς πραγματικά Supabase writes. Ξεχωριστό W2 scenario: τύπος σπαστού, απόρριψη επικαλυπτόμενης ανάγκης και ανάθεση με πραγματικά διαστήματα.
+- `npm.cmd run build` → επιτυχία, με bundle-size warning (~744 kB main chunk).
+- `npm.cmd run lint` → **0 errors**, 38 warnings (κυρίως React effects/compiler/dependencies).
 - `npm.cmd audit --json` → **0 vulnerabilities** κατά τον έλεγχο.
 
 Το PGlite εκτελεί το πραγματικό baseline και migrations, JWT-sub fixture και `SET LOCAL ROLE authenticated`. Εξαιρούνται μόνο pgcrypto extension/Realtime publication DDL. Τα corrective migrations εφαρμόζονται πάνω σε ήδη populated synthetic δεδομένα. Δεν υποκαθιστά hosted Supabase integration ή browser E2E.
 
 ## Επόμενα βήματα
 
-1. **W2 — Πραγματικά διαστήματα και ανάγκες**: store shift templates, split intervals, effective dates και ασφαλές backfill χωρίς επινόηση παλιών ωρών.
-2. W3–W5: πραγματική κάλυψη, atomic ημερήσιο save, άδειες/ledger, draft/preview/publish, ιστορική δικαιοσύνη και έλεγχος πρώτης χρήσης. Βλ. `WORKFORCE_UX_SPEC.md`.
+1. **W3 — Άδειες και ημερήσια αποθήκευση**: atomic day save, leave estimate/ledger/revoke, προστασία εγκεκριμένων απουσιών σε όλα τα write paths.
+2. W4–W5: time-aware draft/preview/publish, ιστορική δικαιοσύνη, πραγματικά όρια εβδομάδων και έλεγχος πρώτης χρήσης. Βλ. `WORKFORCE_UX_SPEC.md`.
 3. Πραγματικά browser/hosted Supabase/Realtime smoke tests με synthetic λογαριασμούς και συντονισμένη διάθεση των αντίστοιχων migrations/client.
 4. Period closing με server-side month locks/correction workflow, μετά το παραπάνω ορόσημο.
 5. C0–C3: κοινό inbox/notifications/attachments, προσωπικές Σημειώσεις με Εισερχόμενα, Προωθητικές PDF με retention και Chat καταστήματος/mobile notifications. Βλ. `COLLABORATION_MODULES_PLAN.md`.

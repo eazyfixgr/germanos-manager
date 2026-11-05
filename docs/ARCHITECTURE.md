@@ -30,7 +30,7 @@ src/
     Charts.tsx            SVG sales trend chart
     services/             CategorySettings, CalendarSettings
     schedule/             CalendarViews, DayReview, ShiftEditor, LeaveRequests,
-                          GenerationDialog, PatternSettings και scoped CSS
+                          WorkforceSettings, Template/Requirement editors, CoveragePanel
   lib/
     supabase.ts           Supabase client
     auth.tsx              Session/profile/store context
@@ -40,7 +40,7 @@ src/
     constants.ts          Labels, status metadata, formatting
     projection.ts         Working days, projection, category stats
     scheduleGen.ts        Automatic schedule algorithm
-    schedule/             Bounded read model/hook, dates/day semantics και CSV
+    schedule/             Read model, dates, intervals, coverage semantics και CSV
     tasks.ts              Task recurrence + generation
     normalize.ts          Number/date/Excel-error normalization
     xlsx.ts               Spreadsheet read/write adapter
@@ -113,7 +113,8 @@ Role guards στο UI είναι συμπληρωματικοί. Η πραγμα
   - `store_category_sales`, `store_daily_sales` (aggregates χωρίς έκθεση μεμονωμένων πωλητών).
   - `replace_month_shifts` (ατομική αντικατάσταση προγράμματος μήνα).
   - `store_capabilities`, `list_organization_people`, `set_organization_member` (νέα τοπικά migrations).
-  - `read_schedule(store,start,end,scope)`: W1, έως 62 ημέρες, minimal membership-based staff και redacted team absences/notes. Restrictive leave SELECT για ιδιωτικές αιτιολογίες.
+  - `read_schedule(store,start,end,scope)`: W1/W2, έως 62 ημέρες, minimal membership-based staff, redacted team absences/notes και πραγματικά διαστήματα/ρυθμίσεις.
+  - `save_shift_template`, `archive_shift_template`, `save_staffing_requirement`, `end_staffing_requirement`, `save_shift_assignment`, `read_workforce_configuration`: W2 ρυθμίσεις/αναθέσεις με store lock, revision και ημερομηνίες ισχύος.
 - Triggers προστασίας: profile fields, target points, task fields, master allowlist.
 - Sync trigger `sync_store_membership`: συγχρονίζει authority/lifecycle αλλαγές του home store profile, όχι contact-only updates. Δεν ανασταίνει revoked membership από αλλαγή ονόματος.
 - Restrictive active-account policies στα operational tables και store-access policies στα self-row sales/targets/tasks. Owner guards εμποδίζουν απώλεια του τελευταίου ενεργού org owner.
@@ -141,6 +142,7 @@ Role guards στο UI είναι συμπληρωματικοί. Η πραγμα
 - `Dialog` χρησιμοποιείται και από τον συμβατό `Modal` adapter. Διατηρεί focus/scroll/stack και κοινό footer, με explicit busy/dirty semantics.
 - Οι legacy shift/leave/generation ενέργειες παραμένουν ξεχωριστές από τα μελλοντικά atomic day/leave ledger και versioned publish workflows. Η κάλυψη δεν παρουσιάζεται ως επιβεβαιωμένη από το ημερήσιο minimum.
 - Συμπεριφορά, tests και roll-out: `WORKFORCE_W1_PROGRESS.md`.
+- W2: `shift_templates`/`staffing_requirements` με ημερομηνίες ισχύος και revisions· `shifts.segments`/`template_id` snapshots. Η κάλυψη μετρά πραγματικά διαστήματα και εμφανίζει συγκεκριμένα κενά. Λεπτομέρειες: `WORKFORCE_W2_PROGRESS.md`.
 
 ## 6. Υπολογισμοί
 
@@ -170,7 +172,7 @@ Role guards στο UI είναι συμπληρωματικοί. Η πραγμα
 1. Τρέξε `supabase/schema.sql`.
 2. Τρέξε τα migrations με χρονολογική σειρά.
 
-Σειρά 5/11: `20261105_membership_authorization.sql`, `20261105_organization_membership_management.sql`, `20261105_support_access.sql`, `20261105_support_access_guards.sql`, `20261105_workforce_read_model.sql`. Εφαρμόζονται μία φορά πριν από το νέο frontend, που απαιτεί capabilities, support και `read_schedule` RPCs. Σε υπάρχουσα βάση δεν επανεκτελείται baseline/seeds. Το `app_private` δεν εκτίθεται στο PostgREST.
+Σειρά 5/11: `20261105_membership_authorization.sql`, `20261105_organization_membership_management.sql`, `20261105_support_access.sql`, `20261105_support_access_guards.sql`, `20261105_workforce_read_model.sql`, `20261105_workforce_w2_01_intervals.sql`, `20261105_workforce_w2_02_configuration.sql`, `20261105_workforce_w2_03_assignments.sql`. Εφαρμόζονται μία φορά πριν από το νέο frontend, που απαιτεί capabilities, support και `read_schedule` RPCs. Σε υπάρχουσα βάση δεν επανεκτελείται baseline/seeds. Το `app_private` δεν εκτίθεται στο PostgREST.
 
 ### Περιορισμός hosting
 

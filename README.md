@@ -4,9 +4,9 @@
 
 Responsive web app (React + Vite + Tailwind), με **Supabase** για auth, βάση δεδομένων και realtime. Deploy σε **GitHub Pages**.
 
-**Κατάσταση (5/11/2026):** το live είναι demo. Το working tree περιέχει membership authorization, org μέλη, support access και νέο **Πρόγραμμα W1** (μήνας/εβδομάδα/ανάλυση ημέρας), με πέντε νέα migrations πριν από διάθεση client. Δεν έχουν εφαρμοστεί στη demo βάση. Επαληθευμένη πρόοδος/σειρά migrations: [Implementation Progress](docs/IMPLEMENTATION_PROGRESS.md).
+**Κατάσταση (5/11/2026):** το live είναι demo. Το working tree περιέχει membership authorization, org μέλη, support access, **Πρόγραμμα W1** (μήνας/εβδομάδα/ανάλυση ημέρας) και **W2 core** (πραγματικά διαστήματα/ανάγκες στελέχωσης), με οκτώ νέα migrations πριν από διάθεση client. Δεν έχουν εφαρμοστεί στη demo βάση. Επαληθευμένη πρόοδος/σειρά migrations: [Implementation Progress](docs/IMPLEMENTATION_PROGRESS.md).
 
-**Επόμενη προτεραιότητα:** πραγματικά split intervals/ανάγκες πάνω στο [τοπικά υλοποιημένο W1](docs/WORKFORCE_W1_PROGRESS.md), και κατόπιν ολοκληρωμένες άδειες/draft/publish πριν από period closing. Πλάνο: [Workforce UX](docs/WORKFORCE_UX_SPEC.md), [Σημειώσεις, Προωθητικές PDF, Chat](docs/COLLABORATION_MODULES_PLAN.md).
+**Επόμενη προτεραιότητα:** ολοκληρωμένες άδειες/ledger (W3) και draft/publish (W4) πριν από period closing. Πλάνο: [Workforce UX](docs/WORKFORCE_UX_SPEC.md), [W2 λεπτομέρειες](docs/WORKFORCE_W2_PROGRESS.md), [Σημειώσεις, Προωθητικές PDF, Chat](docs/COLLABORATION_MODULES_PLAN.md).
 
 ## Λειτουργίες
 
@@ -22,7 +22,8 @@ Responsive web app (React + Vite + Tailwind), με **Supabase** για auth, β�
 - **Υπηρεσίες (Phase 1)**: κεντρικές κατηγορίες (Κινητή, Broadband, FTTH, Τζίρος κ.λπ.) με μονάδα τεμάχια/ευρώ, ενεργοποίηση και σειρά ανά κατάστημα. Στόχοι ανά κατηγορία για κατάστημα και πωλητές, γρήγορη ημερήσια καταχώρηση πωλήσεων (μία εγγραφή ανά πωλητή/κατηγορία/ημέρα), πρόοδος, επίτευξη, projection, απόκλιση, απαιτούμενη ημερήσια ποσότητα, σύγκριση πωλητών και **ημερολόγιο εργάσιμων ημερών** ανά κατάστημα. Ιδιότητα `is_seller` ανεξάρτητη από τον ρόλο.
 - **Παραγγελίες**: ροή `Νέα → Σε παραγγελία → Σε παραλαβή → Παρελήφθη → Έτοιμο → Ενημερώθηκε → Ολοκληρώθηκε`, με **σκανάρισμα barcode/τιμολογίου**.
 - **Πρόγραμμα**: βάρδιες, ρεπό, αιτήσεις ρεπό/άδειας με έγκριση. **Αυτόματο πρόγραμμα** με ρυθμίσεις ωραρίου ανά ημέρα (σπαστό/βραχεία/πλήρης, κλειστά, min staff), σεβασμό σε άδειες/ρεπό, 1 κυλιόμενο ρεπό/εβδομάδα και **δίκαιη κατανομή** των ρεπό σε ημέρες σπαστού, με **διατήρηση δικαιοσύνης μεταξύ μηνών**. Υποστηρίζει εξαιρέσεις ημερών (π.χ. ανοιχτή Κυριακή λόγω γιορτής) μέσω ημερολογίου.
-- **Πρόγραμμα W1 (τοπικό)**: μηνιαία/εβδομαδιαία και προσωπική/ομαδική προβολή, grouped day dialog, errors/dirty-state/focus handling, ενεργά store memberships και ιδιωτικότητα αιτιολογιών. Η χρονική κάλυψη παραμένει μη αξιολογημένη μέχρι τα πραγματικά intervals/requirements.
+- **Πρόγραμμα W1 (τοπικό)**: μηνιαία/εβδομαδιαία και προσωπική/ομαδική προβολή, grouped day dialog, errors/dirty-state/focus handling, ενεργά store memberships και ιδιωτικότητα αιτιολογιών.
+- **Πρόγραμμα W2 core (τοπικό)**: τύποι βάρδιας με πραγματικά διαστήματα/εκδόσεις, ανάγκες στελέχωσης ανά ώρα, revision-safe αναθέσεις και κάλυψη που δεν μετρά το κενό του σπαστού. Παλιά σπαστά χωρίς γνωστά διαστήματα εμφανίζονται ως μη αξιολογημένα.
 - **Dashboard**: κάρτες KPI και **γράφημα πορείας ημερήσιων πωλήσεων** (τεμάχια) έναντι στόχου, με projection τέλους μήνα.
 - **Εργασίες καταστήματος (Phase 3)**: καθημερινές/επαναλαμβανόμενες εργασίες (καθαριότητα, αποθήκη, ταμείο κ.λπ.) με πρότυπα, **αυτόματη κατανομή** βάσει βαρδιών/αδειών/ρόλου, «Οι εργασίες μου» ανά υπάλληλο, ολοκλήρωση, ιστορικό, προβολή μήνα και εκτύπωση. Οι υπάλληλοι βλέπουν μόνο τις δικές τους εργασίες.
 - **Οργανισμός**: εταιρεία → πολλαπλά καταστήματα, ρόλοι owner/admin, **εναλλαγή ενεργού καταστήματος**, δημιουργία νέου καταστήματος από owner/admin. Σελίδα **Οργανισμός**.
@@ -67,7 +68,7 @@ npm run lint
 npm audit
 ```
 
-Σε Windows PowerShell μπορεί να χρειάζεται `npm.cmd`. Τα 114 tests περιλαμβάνουν PostgreSQL/RLS μέσω PGlite και React Testing Library/jsdom. Το W1 ελέγχθηκε επιπλέον σε πραγματικό Chrome desktop/mobile με synthetic API transport και χωρίς remote writes. Hosted Supabase/Realtime acceptance παραμένει ανοιχτό. [Security Audit](docs/SECURITY_AUDIT.md), [Roadmap](docs/IMPLEMENTATION_ROADMAP.md).
+Σε Windows PowerShell μπορεί να χρειάζεται `npm.cmd`. Τα 131 tests περιλαμβάνουν PostgreSQL/RLS μέσω PGlite και React Testing Library/jsdom. Τα W1/W2 ελέγχθηκαν επιπλέον σε πραγματικό Chrome desktop/mobile με synthetic API transport και χωρίς remote writes. Hosted Supabase/Realtime acceptance παραμένει ανοιχτό. [Security Audit](docs/SECURITY_AUDIT.md), [Roadmap](docs/IMPLEMENTATION_ROADMAP.md).
 
 ## Χρήση — πρώτα βήματα
 
