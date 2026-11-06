@@ -1,5 +1,5 @@
 import { useId, useState } from 'react'
-import Dialog from '../Dialog'
+import Dialog, { DialogCloseButton } from '../Dialog'
 import { Button, ErrorBox, Field, Input, Select } from '../ui'
 import { todayInAthens, WEEKDAYS } from '../../lib/schedule/dates'
 import type { ShiftTemplate, StaffingRequirement } from '../../lib/schedule/intervals'
@@ -31,7 +31,7 @@ export default function RequirementEditor({ storeId, templates, existing, onClos
     finally { setBusy(false) }
   }
   return <Dialog open title="Ανάγκη στελέχωσης" description="Ελάχιστα άτομα για συγκεκριμένο πραγματικό διάστημα" size="lg" onClose={onClose} busy={busy} dirty={JSON.stringify(form) !== JSON.stringify(initial)}
-    footer={<><Button type="button" variant="secondary" disabled={busy} onClick={onClose}>Ακύρωση</Button><Button type="submit" form={id} disabled={busy}>{busy ? 'Αποθήκευση…' : 'Αποθήκευση ανάγκης'}</Button></>}>
+    footer={<><DialogCloseButton disabled={busy}>Ακύρωση</DialogCloseButton><Button type="submit" form={id} disabled={busy}>{busy ? 'Αποθήκευση…' : 'Αποθήκευση ανάγκης'}</Button></>}>
     <form id={id} onSubmit={save} className="space-y-4"><ErrorBox message={error} />
       <div className="grid grid-cols-2 gap-3"><Field label="Ημέρα"><Select value={form.weekday} disabled={busy} onChange={(e) => setForm({ ...form, weekday: Number(e.target.value) })}>{WEEKDAYS.map((day, index) => <option key={day} value={index + 1}>{day}</option>)}</Select></Field>
         <Field label="Τύπος προσωπικού"><Select value={form.template_code} disabled={busy} onChange={(e) => setForm({ ...form, template_code: e.target.value })}><option value="">Οποιαδήποτε βάρδια</option>{types.map((type) => <option key={type.code} value={type.code}>{type.name}</option>)}</Select></Field></div>
@@ -50,7 +50,7 @@ export function EndRequirement({ storeId, requirement, onClose, onSaved }: { sto
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   return <Dialog open title="Λήξη ανάγκης στελέχωσης" description="Το ιστορικό έως τη δηλωμένη ημέρα παραμένει." onClose={onClose} busy={busy}
-    footer={<><Button type="button" variant="secondary" disabled={busy} onClick={onClose}>Ακύρωση</Button><Button type="button" disabled={busy} onClick={async () => {
+    footer={<><DialogCloseButton disabled={busy}>Ακύρωση</DialogCloseButton><Button type="button" disabled={busy} onClick={async () => {
       setBusy(true); setError('')
       try {
         const { error: saveError } = await supabase.rpc('end_staffing_requirement', { p_store: storeId, p_id: requirement.id, p_revision: requirement.revision, p_until: until })

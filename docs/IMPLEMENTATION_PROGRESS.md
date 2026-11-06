@@ -4,13 +4,15 @@
 
 ## Τρέχουσα κατάσταση
 
-**Phase 1.2 + Workforce W1/W2 — authorization/support, νέα εμπειρία Προγράμματος και πραγματικά διαστήματα/ανάγκες: τοπική υλοποίηση.**
+**W1/W2 live· W3 migration εφαρμόστηκε· store roles/transfers και category-points τοπικά.**
 
 - Οι Phase 0/1.1 παραδόθηκαν προηγουμένως (`9edc2dd`, `9ea6643`). Ο επανέλεγχος εντόπισε ουσιαστικά κενά· οι παλιές σημάνσεις «ολοκληρωμένο/ελεγμένο» δεν αποτελούν πλήρη πιστοποίηση ασφάλειας.
-- Οι διορθώσεις και τα νέα tests βρίσκονται στο working tree. Δεν έγινε νέο commit, push, deploy ή εφαρμογή migration στη demo βάση στην παρούσα εργασία.
-- Ο χρήστης ζήτησε commit/push πριν το W2. Η παράδοση προετοιμάζεται στο branch `feat/workforce-foundation`, επειδή το `main` ενεργοποιεί Pages deploy ενώ εκκρεμούν τα migrations. Η remote βάση δεν μεταβλήθηκε.
-- Τα οκτώ νέα migrations ελέγχθηκαν τοπικά σε PostgreSQL/PGlite με synthetic λογαριασμούς. Frontend: TypeScript/build, React/jsdom και πραγματικό Chrome desktop/mobile με synthetic transport. Hosted Supabase/Realtime acceptance εκκρεμεί.
-- Η συνολική Phase 1.2 παραμένει ανοιχτή: period closing και deployment acceptance εκκρεμούν.
+- Ο χρήστης επιβεβαίωσε επιτυχή εφαρμογή των πρώτων 8 authorization/W1/W2 migrations. W1/W2 έγινε deploy στο `main` (`116767a`); GitHub Actions build/tests/deploy πέρασαν.
+- Ο χρήστης επιβεβαίωσε ότι εφάρμοσε και το W3 migration `20261105_workforce_w3_leave_transactions.sql`. Το W3 client δεν έχει γίνει deploy.
+- Store hierarchy/transfers υλοποιούνται τοπικά· νέα migration `20261105_store_hierarchy_transfers.sql` εκκρεμεί εφαρμογής. Αναλυτικά: `docs/STORE_HIERARCHY_PROGRESS.md`.
+- Points ανά κατηγορία: rules ανά κατάστημα, πωλήσεις × rate, append-only διορθώσεις, category targets· migration `20261105_store_point_categories.sql` εκκρεμεί. Spec: `docs/POINTS_BY_CATEGORY_SPEC.md`.
+- PostgreSQL/PGlite ελέγχει W1/W2/W3/store roles/category-points με synthetic accounts. Hosted Supabase/Realtime acceptance και client deployment εκκρεμούν.
+- Η συνολική Phase 1.2 παραμένει ανοιχτή: W3/store roles/category-points client deployment acceptance και period closing εκκρεμούν.
 - Νέα οδηγία χρήστη: **προηγείται η αναβάθμιση Προγράμματος/αδειών και παραθύρων σύμφωνα με το δοσμένο HTML demo**, πριν ξεκινήσει το period closing. Οι νέες ενότητες συνεργασίας καταγράφηκαν στο roadmap ως μελλοντική υλοποίηση.
 
 ## Νέα προδιαγραφή χρήστη — Πρόγραμμα και καθημερινή συνεργασία
@@ -22,7 +24,11 @@
 - [x] Ενημερωμένες αποφάσεις/roadmap και κριτήρια αποδοχής πρώτης χρήσης χωρίς προφορική καθοδήγηση.
 - [x] W1 τοπικά: shared dialogs, scoped read model, μήνας/εβδομάδα, ημερήσια ανάλυση, προσωπική/ομαδική προβολή, CSV και διατηρημένες legacy ενέργειες. Αναλυτικά: `docs/WORKFORCE_W1_PROGRESS.md`.
 - [x] W2 core τοπικά: τύποι/εκδόσεις βαρδιών, πραγματικά διαστήματα, ανάγκες στελέχωσης, revision-safe αναθέσεις και χρονική κάλυψη. Αναλυτικά: `docs/WORKFORCE_W2_PROGRESS.md`.
-- [ ] W3–W5: ολοκληρωμένο transactional leave workflow, αποθηκευμένα drafts/publish και πλήρης αξιολόγηση πρώτης χρήσης.
+- [x] W2 core live: W2 client deployed μετά την επιβεβαίωση εφαρμογής των 8 migrations.
+- [x] W3 core τοπικά: transactional leave submit/review/revoke + dated ledger, revision-safe atomic day save. `docs/WORKFORCE_W3_PROGRESS.md`.
+- [x] Ο χρήστης επιβεβαίωσε εφαρμογή της W3 migration.
+- [ ] W3/store-role client deployment acceptance· εφαρμογή της 10ης `store_hierarchy_transfers` migration πριν από client push/merge στο `main`.
+- [ ] W4–W5: αποθηκευμένα drafts/publish και πλήρης αξιολόγηση πρώτης χρήσης.
 - [ ] Υλοποίηση C0–C3 μετά το άμεσο ορόσημο, με προτεινόμενη αλληλουχία inbox/notifications → Σημειώσεις → Προωθητικές → Chat/mobile push.
 
 Το W1 ελέγχθηκε με SQL, unit/component και Chrome synthetic browser scenarios. Δεν έγινε remote migration/deploy ή μεταβολή πραγματικών λογαριασμών.
@@ -60,7 +66,7 @@
 ### Organization membership management
 
 - [x] `list_organization_people`: προσωπικό μόνο του επιλεγμένου οργανισμού.
-- [x] `set_organization_member`: tenant owner ορίζει owner/admin/member ή αφαιρεί org membership. Store-scoped master support δεν δίνει org-wide authority.
+- [x] `set_organization_member`: tenant owner διαχειρίζεται admin/member· owner appointment/change μόνο από master. Store-scoped master support δεν δίνει org-wide authority.
 - [x] Last-active-owner guard σε demotion/removal, απενεργοποίηση, soft delete και οριστική διαγραφή profile.
 - [x] Ownership transfer αφού οριστεί δεύτερος ενεργός owner.
 - [x] `organization_audit_events`: before/after ρόλος, actor, target, timestamp· άμεσες εφαρμογικές μεταβολές του audit απορρίπτονται.
@@ -97,44 +103,43 @@
 | `schema.sql` | Ιστορικό baseline, μόνο για νέα εγκατάσταση |
 | `migrations/20261104_phase0_security_fixes.sql` | Προηγουμένως εφαρμοσμένο στη demo βάση |
 | `migrations/20261104_phase1_organizations.sql` | Προηγουμένως εφαρμοσμένο στη demo βάση |
-| `migrations/20261105_membership_authorization.sql` | Νέο, τοπικά ελεγμένο, **δεν εφαρμόστηκε remote** |
-| `migrations/20261105_organization_membership_management.sql` | Νέο, τοπικά ελεγμένο, **δεν εφαρμόστηκε remote** |
-| `migrations/20261105_support_access.sql` | Νέο, τοπικά ελεγμένο, **δεν εφαρμόστηκε remote** |
-| `migrations/20261105_support_access_guards.sql` | Νέο, τοπικά ελεγμένο, **δεν εφαρμόστηκε remote** |
-| `migrations/20261105_workforce_read_model.sql` | Νέο W1, τοπικά ελεγμένο, **δεν εφαρμόστηκε remote** |
-| `migrations/20261105_workforce_w2_01_intervals.sql` | Νέο W2, τοπικά ελεγμένο, **δεν εφαρμόστηκε remote** |
-| `migrations/20261105_workforce_w2_02_configuration.sql` | Νέο W2, τοπικά ελεγμένο, **δεν εφαρμόστηκε remote** |
-| `migrations/20261105_workforce_w2_03_assignments.sql` | Νέο W2, τοπικά ελεγμένο, **δεν εφαρμόστηκε remote** |
+| `migrations/20261105_membership_authorization.sql` | Εφαρμόστηκε στη demo βάση, κατά δήλωση χρήστη |
+| `migrations/20261105_organization_membership_management.sql` | Εφαρμόστηκε στη demo βάση, κατά δήλωση χρήστη |
+| `migrations/20261105_support_access.sql` | Εφαρμόστηκε στη demo βάση, κατά δήλωση χρήστη |
+| `migrations/20261105_support_access_guards.sql` | Εφαρμόστηκε στη demo βάση, κατά δήλωση χρήστη |
+| `migrations/20261105_workforce_read_model.sql` | Εφαρμόστηκε στη demo βάση, κατά δήλωση χρήστη |
+| `migrations/20261105_workforce_w2_01_intervals.sql` | Εφαρμόστηκε στη demo βάση, κατά δήλωση χρήστη |
+| `migrations/20261105_workforce_w2_02_configuration.sql` | Εφαρμόστηκε στη demo βάση, κατά δήλωση χρήστη |
+| `migrations/20261105_workforce_w2_03_assignments.sql` | Εφαρμόστηκε στη demo βάση, κατά δήλωση χρήστη |
+| `migrations/20261105_workforce_w3_leave_transactions.sql` | Ο χρήστης επιβεβαίωσε εφαρμογή στη demo βάση; client deploy pending |
+| `migrations/20261105_store_hierarchy_transfers.sql` | Ρόλοι/ιεραρχία/μεταφορές, local SQL-tested; **εκκρεμεί εφαρμογή** |
+| `migrations/20261105_store_point_categories.sql` | Category-points, local SQL-tested; **εκκρεμεί εφαρμογή μετά το store hierarchy** |
 
-Για ήδη μεταφερμένη βάση εφαρμόζονται μία φορά τα οκτώ νέα migrations, με την παραπάνω σειρά. Δεν επανεκτελείται το baseline ή το παλιό seed. Υπάρχουν tests διατήρησης tenant/role/membership δεδομένων και backfill του tenant scope παλιών order events χωρίς απώλεια parent links.
+Ο χρήστης επιβεβαίωσε εφαρμογή των πρώτων 8 migrations και του W3 migration. Εκτελεστικές migrations 10 και 11 είναι `store_hierarchy_transfers` και `store_point_categories` αντίστοιχα. Τρέχουν μία φορά με αυτή τη σειρά μετά το W3 και πριν από το νέο client. Δεν επανεκτελείται baseline ή seed.
 
-Η διάθεση πρέπει να προηγηθεί στη βάση και να ακολουθήσει συντονισμένα το frontend: απαιτούνται `store_capabilities`, support RPCs και `read_schedule`. Το παλιό master UI δεν είναι συμβατό με το νέο default deny. Επιβεβαίωση PostgREST RPCs/relationships και smoke tests σε synthetic accounts. Το `app_private` παραμένει μη exposed.
+Η διάθεση κάθε ορόσημου απαιτεί migration πριν από το αντίστοιχο client. Το W1/W2 client είναι live. W3 migration εφαρμόστηκε· store hierarchy/category-points migrations και νέο client deploy εκκρεμούν. Το `app_private` παραμένει μη exposed.
 
 ## Επαληθευμένα τοπικά checks
 
-- `npm.cmd test` → **131 passed**, 15 αρχεία:
-  - 25 αρχικά unit tests,
-  - 5 effective-permission tests,
-  - 3 spreadsheet regression tests,
-  - 30 PostgreSQL/RLS/integration tests, περιλαμβανομένης αναπαραγωγής legacy bugs.
-  - 16 support PostgreSQL/RLS tests, 3 support clock tests και 5 React/jsdom lifecycle tests.
-  - 8 W1 dates/day-model, 8 scoped read-model SQL, 5 shared Dialog και 6 Schedule/UI tests.
-  - 7 W2 coverage unit tests, 10 W2 PostgreSQL interval/configuration/assignment tests και 15 επιπλέον W2 SQL/UI συνολικά.
+- `npm.cmd test` → **152 passed**, 16 αρχεία:
+  - 25 αρχικά unit tests, 5 effective-permission tests, 3 spreadsheet regression tests.
+  - 30 authorization PostgreSQL tests, 16 support-access PostgreSQL, 8 schedule-read PostgreSQL, 10 W2 interval PostgreSQL και 16 W3/W4 role, transfer and points PostgreSQL tests.
+  - 8 W1 date/day-model, 7 W2 interval-coverage unit, 3 support-clock tests.
+  - 21 React/jsdom tests: 5 support-auth, 5 shared-dialog και 11 schedule/leave/day UI tests.
 - Chrome/Playwright synthetic smoke → επιτυχία desktop 1440×1000 / mobile 390×844, χωρίς πραγματικά Supabase writes. Ξεχωριστό W2 scenario: τύπος σπαστού, απόρριψη επικαλυπτόμενης ανάγκης και ανάθεση με πραγματικά διαστήματα.
-- `npm.cmd run build` → επιτυχία, με bundle-size warning (~744 kB main chunk).
-- `npm.cmd run lint` → **0 errors**, 38 warnings (κυρίως React effects/compiler/dependencies).
+- `npm.cmd run build` → επιτυχία, με bundle-size warning (~780 kB main chunk).
+- `npm.cmd run lint` → **0 errors**, 43 warnings (κυρίως React effects/compiler/dependencies).
 - `npm.cmd audit --json` → **0 vulnerabilities** κατά τον έλεγχο.
 
 Το PGlite εκτελεί το πραγματικό baseline και migrations, JWT-sub fixture και `SET LOCAL ROLE authenticated`. Εξαιρούνται μόνο pgcrypto extension/Realtime publication DDL. Τα corrective migrations εφαρμόζονται πάνω σε ήδη populated synthetic δεδομένα. Δεν υποκαθιστά hosted Supabase integration ή browser E2E.
 
 ## Επόμενα βήματα
 
-1. **W3 — Άδειες και ημερήσια αποθήκευση**: atomic day save, leave estimate/ledger/revoke, προστασία εγκεκριμένων απουσιών σε όλα τα write paths.
+1. Εφαρμογή των `store_hierarchy_transfers` και `store_point_categories` migrations με τη σειρά και hosted synthetic smoke tests, έπειτα συντονισμένο client deploy.
 2. W4–W5: time-aware draft/preview/publish, ιστορική δικαιοσύνη, πραγματικά όρια εβδομάδων και έλεγχος πρώτης χρήσης. Βλ. `WORKFORCE_UX_SPEC.md`.
-3. Πραγματικά browser/hosted Supabase/Realtime smoke tests με synthetic λογαριασμούς και συντονισμένη διάθεση των αντίστοιχων migrations/client.
-4. Period closing με server-side month locks/correction workflow, μετά το παραπάνω ορόσημο.
-5. C0–C3: κοινό inbox/notifications/attachments, προσωπικές Σημειώσεις με Εισερχόμενα, Προωθητικές PDF με retention και Chat καταστήματος/mobile notifications. Βλ. `COLLABORATION_MODULES_PLAN.md`.
-6. Περαιτέρω tenant-reference invariants, atomic imports, ενιαίο audit/monitoring και analytics χωρίς αυθαίρετη πρόσθεση επικαλυπτόμενων `count` κατηγοριών.
-7. Email verification/MFA και κατάλληλο SaaS hosting πριν από εμπορική διάθεση.
+3. Period closing με server-side month locks/correction workflow, μετά την ολοκλήρωση W4/W5.
+4. C0–C3: κοινό inbox/notifications/attachments, προσωπικές Σημειώσεις με Εισερχόμενα, Προωθητικές PDF με retention και Chat καταστήματος/mobile notifications. Βλ. `COLLABORATION_MODULES_PLAN.md`.
+5. Περαιτέρω tenant-reference invariants, atomic imports, ενιαίο audit/monitoring και analytics χωρίς αυθαίρετη πρόσθεση επικαλυπτόμενων `count` κατηγοριών.
+6. Email verification/MFA και κατάλληλο SaaS hosting πριν από εμπορική διάθεση.
 
 **Backups: σε αναμονή κατόπιν οδηγίας χρήστη.** Το GitHub Pages και η σημερινή Supabase βάση παραμένουν demo/testing. Τα καταστήματα που δημιουργούνται από τη master σελίδα ακόμη δεν συνδέονται αυτόματα σε οργανισμό.

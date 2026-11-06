@@ -73,7 +73,7 @@ export default function OrganizationMembers({ organizationId, canEdit, onChanged
     <Card>
       <h2 className="font-semibold text-ink">Μέλη και δικαιώματα οργανισμού</h2>
       <p className="mt-1 text-xs text-muted">
-        Μόνο ο ιδιοκτήτης αλλάζει ρόλους. Πρέπει να παραμένει τουλάχιστον ένας ενεργός ιδιοκτήτης.
+        Ο ιδιοκτήτης διαχειρίζεται μέλη και διαχειριστές. Διορισμός ή αλλαγή ιδιοκτήτη γίνεται μόνο από master.
         Η αφαίρεση ρόλου οργανισμού δεν διαγράφει τον λογαριασμό ή την πρόσβαση στο κατάστημα εργασίας του.
       </p>
       <ErrorBox message={error} />
@@ -89,14 +89,14 @@ export default function OrganizationMembers({ organizationId, canEdit, onChanged
                 <tr key={person.user_id}>
                   <td className="p-2"><div className="font-medium">{person.full_name}</div><div className="text-xs text-muted">{person.email}</div></td>
                   <td className="p-2">
-                    {canEdit ? <Select aria-label={`Ρόλος ${person.full_name}`}
+                    {canEdit && person.organization_role !== 'owner' ? <Select aria-label={`Ρόλος ${person.full_name}`}
                       value={drafts[person.user_id] ?? ''} disabled={busy !== null}
                       onChange={(e) => setDrafts((previous) => ({ ...previous, [person.user_id]: e.target.value }))}>
                       <option value="">Χωρίς ρόλο οργανισμού</option>
-                      <option value="member">Μέλος</option><option value="admin">Διαχειριστής</option><option value="owner">Ιδιοκτήτης</option>
+                      <option value="member">Μέλος</option><option value="admin">Διαχειριστής</option>
                     </Select> : <Badge>{person.organization_role ? labels[person.organization_role] : 'Χωρίς ρόλο'}</Badge>}
                   </td>
-                  <td className="p-2">{canEdit && <Button variant="secondary" disabled={busy !== null || (drafts[person.user_id] || null) === person.organization_role}
+                  <td className="p-2">{canEdit && person.organization_role !== 'owner' && <Button variant="secondary" disabled={busy !== null || (drafts[person.user_id] || null) === person.organization_role}
                     onClick={() => void save(person)}>{busy === person.user_id ? 'Αποθήκευση…' : 'Εφαρμογή'}</Button>}</td>
                 </tr>
               ))}

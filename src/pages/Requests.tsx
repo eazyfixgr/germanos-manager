@@ -3,9 +3,11 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { fmtDate } from '../lib/constants'
 import { Badge, Button, Card, EmptyState, PageHeader, Spinner } from '../components/ui'
-import type { Profile } from '../lib/types'
+import type { Profile, StorePosition, StoreType } from '../lib/types'
 
-type Row = Profile & { stores: { name: string; code: string | null } | null }
+type Row = Profile & { stores: { name: string; code: string | null; store_type: StoreType } | null }
+const titles: Record<StorePosition,string> = { owner:'Ιδιοκτήτης Franchise',director:'Διευθυντής',assistant_director:'Υποδιευθυντής',supervisor:'Προϊστάμενος καταστήματος',employee:'Υπάλληλος' }
+const rank: Record<StorePosition,number> = { owner:0,director:1,assistant_director:2,supervisor:3,employee:4 }
 
 function storeLabel(r: Row) {
   if (r.stores) return `${r.stores.name}${r.stores.code ? ` · ${r.stores.code}` : ''}`
@@ -14,21 +16,26 @@ function storeLabel(r: Row) {
 }
 
 export default function Requests() {
-  const { isAdmin, isMaster, refreshProfile } = useAuth()
+  const { isAdmin, isMaster, store, refreshProfile } = useAuth()
   const [rows, setRows] = useState<Row[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [actorPosition, setActorPosition] = useState<StorePosition>('employee')
 
   const load = useCallback(async () => {
     const { data } = await supabase
       .from('profiles')
-      .select('*, stores:stores!profiles_store_id_fkey(name, code)')
+      .select('*, stores:stores!profiles_store_id_fkey(name, code, store_type)')
       .eq('active', false)
       .is('deleted_at', null)
       .order('created_at', { ascending: true })
     setRows((data as Row[]) ?? [])
+    if (store) {
+      const { data: position } = await supabase.rpc('my_store_position', { p_store: store.id })
+      setActorPosition((position ?? 'employee') as StorePosition)
+    }
     setLoading(false)
-  }, [])
+  }, [store])
 
   useEffect(() => {
     load()
@@ -78,6 +85,10 @@ export default function Requests() {
       <div className="space-y-2">
         {rows.map((r) => (
           <Card key={r.id}>
+            {(() => {
+              const requested = r.pending_position ?? r.store_position
+              const canApprove = isMaster || (requested !== 'owner' && r.store_id === store?.id && rank[actorPosition] < rank[requested])
+              return <>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0">
                 <div className="font-medium text-slate-900">{r.full_name}</div>
@@ -87,20 +98,23 @@ export default function Requests() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Badge className={r.role === 'admin' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'}>
-                  {r.role === 'admin' ? 'Υπεύθυνος' : 'Υπάλληλος'}
+                <Badge className={requested === 'owner' || requested === 'director' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'}>
+                  {titles[requested]}
                 </Badge>
+                {r.pending_store_type && <Badge>{r.pending_store_type === 'franchise' ? 'Franchise' : 'Ιδιόκτητο'}</Badge>}
                 {!r.stores && r.pending_store_code && (
                   <Badge className="bg-purple-100 text-purple-800">Νέο κατάστημα · master</Badge>
                 )}
-                <Button className="!px-3 !py-1.5 text-xs" onClick={() => approve(r)}>
+                {canApprove && <Button className="!px-3 !py-1.5 text-xs" onClick={() => approve(r)}>
                   Έγκριση
-                </Button>
-                <Button variant="danger" className="!px-3 !py-1.5 text-xs" onClick={() => reject(r)}>
+                </Button>}
+                {canApprove && <Button variant="danger" className="!px-3 !py-1.5 text-xs" onClick={() => reject(r)}>
                   Απόρριψη
-                </Button>
+                </Button>}
               </div>
             </div>
+              </>
+            })()}
           </Card>
         ))}
       </div>

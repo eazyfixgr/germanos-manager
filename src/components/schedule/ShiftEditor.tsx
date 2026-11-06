@@ -1,16 +1,17 @@
 import { useId, useState } from 'react'
-import Dialog from '../Dialog'
+import Dialog, { DialogCloseButton } from '../Dialog'
 import { Button, ErrorBox, Field, Select, Textarea } from '../ui'
 import { supabase } from '../../lib/supabase'
 import { SHIFT_TYPE } from '../../lib/constants'
 import { formatScheduleDate } from '../../lib/schedule/dates'
-import { shiftLabel, type StaffDay } from '../../lib/schedule/model'
+import { shiftLabel, type DayAssignmentDraft, type StaffDay } from '../../lib/schedule/model'
 import { formatSegments, resolvedSegments, templateApplies, validSegments, type ShiftTemplate } from '../../lib/schedule/intervals'
 import SegmentFields from './SegmentFields'
 import type { ShiftType } from '../../lib/types'
 
-export default function ShiftEditor({ storeId, date, row, closed, openingHours, templates = [], onClose, onSaved }: {
-  storeId: string; date: string; row: StaffDay; closed: boolean; openingHours?: string | null; templates?: ShiftTemplate[]; onClose: () => void; onSaved: () => void
+export default function ShiftEditor({ storeId, date, row, closed, openingHours, templates = [], draftOnly = false, onClose, onSaved, onDraft }: {
+  storeId: string; date: string; row: StaffDay; closed: boolean; openingHours?: string | null; templates?: ShiftTemplate[]; draftOnly?: boolean
+  onClose: () => void; onSaved?: () => void; onDraft?: (draft: DayAssignmentDraft) => void
 }) {
   const [initial] = useState(() => ({ type: row.shift?.shift_type ?? 'custom', templateId: row.shift?.template_id ?? '',
     segments: resolvedSegments(row.shift)?.length ? resolvedSegments(row.shift)! : row.shift?.shift_type === 'split'
@@ -36,18 +37,22 @@ export default function ShiftEditor({ storeId, date, row, closed, openingHours, 
     }
     setBusy(true)
     try {
-      const { error: saveError } = await supabase.rpc('save_shift_assignment', { p_store: storeId, p_assignment: {
+      const assignment: DayAssignmentDraft = {
         id: row.shift?.id ?? null, revision: row.shift?.revision ?? 0, user_id: row.person.id, date,
-        template_id: selected?.id ?? null, shift_type: type, segments: absence ? null : segments, note: form.note,
-      } })
+        template_id: selected?.id ?? null, template_code: selected?.code ?? null, template_name: selected?.name ?? null,
+        template_short_label: selected?.short_label ?? null, template_color: selected?.color ?? null,
+        shift_type: type, segments: absence ? null : segments, note: form.note,
+      }
+      if (draftOnly) { onDraft?.(assignment); return }
+      const { error: saveError } = await supabase.rpc('save_shift_assignment', { p_store: storeId, p_assignment: assignment })
       if (saveError) throw new Error(saveError.code === 'PGRST202' ? 'Η ανάθεση διαστημάτων απαιτεί τα W2 migrations.' : saveError.message)
-      onSaved()
+      onSaved?.()
     } catch (e) { setError(e instanceof Error ? e.message : 'Η βάρδια δεν αποθηκεύτηκε.') }
     finally { setBusy(false) }
   }
   return <Dialog open title="Χειροκίνητη βάρδια" description={`${row.person.full_name} · ${formatScheduleDate(date, true)}`}
     onClose={onClose} busy={busy} dirty={JSON.stringify(form) !== JSON.stringify(initial)}
-    footer={<><Button type="button" variant="secondary" onClick={onClose} disabled={busy}>Ακύρωση</Button><Button type="submit" form={formId} disabled={busy}>{busy ? 'Αποθήκευση…' : 'Αποθήκευση βάρδιας'}</Button></>}>
+    footer={<><DialogCloseButton disabled={busy}>Ακύρωση</DialogCloseButton><Button type="submit" form={formId} disabled={busy}>{busy ? 'Αποθήκευση…' : 'Αποθήκευση βάρδιας'}</Button></>}>
     <form id={formId} onSubmit={save} className="space-y-4"><ErrorBox message={error} />
       {options.length > 0 && <Field label="Τύπος καταστήματος"><Select value={form.templateId} disabled={busy} onChange={(e) => setForm({ ...form, templateId: e.target.value })}>
         <option value="">Χειροκίνητα διαστήματα</option>{options.map((template) => <option key={template.id} value={template.id}>{template.name}{!template.active ? ' · ιστορικό' : ''}</option>)}

@@ -1,5 +1,5 @@
 import { useId, useState } from 'react'
-import Dialog from '../Dialog'
+import Dialog, { DialogCloseButton } from '../Dialog'
 import { Button, ErrorBox, Field, Input, Select } from '../ui'
 import SegmentFields from './SegmentFields'
 import { addDays, todayInAthens } from '../../lib/schedule/dates'
@@ -40,7 +40,7 @@ export default function TemplateEditor({ storeId, existing, onClose, onSaved }: 
   }
   return <Dialog open title={existing ? 'Έκδοση τύπου βάρδιας' : 'Νέος τύπος βάρδιας'} description="Ονόματα, πραγματικά διαστήματα και ημερομηνίες ισχύος" onClose={onClose} busy={busy}
     dirty={JSON.stringify(initial) !== JSON.stringify(form)} size="lg"
-    footer={<><Button type="button" variant="secondary" disabled={busy} onClick={onClose}>Ακύρωση</Button><Button type="submit" form={id} disabled={busy}>{busy ? 'Αποθήκευση…' : 'Αποθήκευση τύπου'}</Button></>}>
+    footer={<><DialogCloseButton disabled={busy}>Ακύρωση</DialogCloseButton><Button type="submit" form={id} disabled={busy}>{busy ? 'Αποθήκευση…' : 'Αποθήκευση τύπου'}</Button></>}>
     <form id={id} onSubmit={save} className="space-y-4"><ErrorBox message={error} />
       <div className="grid gap-3 sm:grid-cols-[1fr_110px]"><Field label="Όνομα"><Input required maxLength={100} value={form.name} disabled={busy} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="π.χ. Πρωινό" /></Field>
         <Field label="Συντομογραφία"><Input required maxLength={4} value={form.short_label} disabled={busy} onChange={(e) => setForm({ ...form, short_label: e.target.value })} placeholder="π.χ. Π" /></Field></div>

@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { Button, Card, ErrorBox, Field, Input, PageHeader, SuccessBox } from '../components/ui'
+import StoreTransfers from '../components/StoreTransfers'
 
 export default function Account() {
-  const { profile, refreshProfile } = useAuth()
+  const { profile, store, refreshProfile } = useAuth()
   const [fullName, setFullName] = useState(profile?.full_name ?? '')
   const [phone, setPhone] = useState(profile?.phone ?? '')
   const [profileMsg, setProfileMsg] = useState('')
@@ -68,6 +69,8 @@ export default function Account() {
           </div>
         </form>
       </Card>
+
+      {profile && store && <StoreTransfers profile={profile} store={store} onTransferred={refreshProfile} />}
 
       <Card>
         <h2 className="font-semibold text-slate-900">Αλλαγή κωδικού</h2>

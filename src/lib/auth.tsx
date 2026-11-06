@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
-import type { AccountType, Profile, Store } from '../lib/types'
+import type { AccountType, Profile, Store, StorePosition, StoreType } from '../lib/types'
 import { effectivePermissions, type OrganizationRole, type StoreCapabilities } from './access'
 import { supportSessionFromRow, type SupportSession, type SupportSessionRow, type SupportStore } from './support'
 
@@ -32,6 +32,8 @@ interface AuthState {
     accountType: AccountType,
     storeName: string,
     storeCode: string,
+    storeType?: StoreType,
+    storePosition?: StorePosition,
   ) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
@@ -274,6 +276,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     accountType: AccountType,
     storeName: string,
     storeCode: string,
+    storeType?: StoreType,
+    storePosition?: StorePosition,
   ) {
     const { error } = await supabase.auth.signUp({
       email,
@@ -284,6 +288,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           account_type: accountType,
           store_name: storeName.trim(),
           store_code: storeCode.trim().toUpperCase(),
+          store_type: storeType ?? null,
+          store_position: storePosition ?? (accountType === 'user' ? 'employee' : 'director'),
         },
       },
     })

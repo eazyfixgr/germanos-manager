@@ -5,12 +5,12 @@
 
 ## Κατάσταση διάθεσης και αποδεικτικών στοιχείων
 
-Οι Phase 0/1.1 παραδόθηκαν προηγουμένως. Ο επανέλεγχος επιβεβαίωσε κενά που δεν κάλυπταν τα αρχικά unit/manual tests. Οι διορθώσεις `20261105_*` είναι **τοπικές, όχι εφαρμοσμένες στη demo βάση ή deployed**. Η ένδειξη «τοπική διόρθωση» παρακάτω δεν σημαίνει ότι το live demo προστατεύεται ήδη από αυτήν.
+Οι Phase 0/1.1 παραδόθηκαν προηγουμένως. Ο επανέλεγχος επιβεβαίωσε κενά που δεν κάλυπταν τα αρχικά unit/manual tests. Τα πρώτα 8 corrective/W1/W2 migrations και το 9ο W3 δηλώθηκαν εφαρμοσμένα· το 10ο store hierarchy/transfer migration είναι local-only και pending. Η κατάσταση κάθε finding παρακάτω διακρίνει live από local-only.
 
-- 131 passing tests: 64 PostgreSQL/RLS integration, 16 React/jsdom, 8 W1 dates/day-model, 7 W2 coverage, 5 effective-permission, 3 support-clock, 3 spreadsheet και 25 αρχικά unit tests.
+- 152 passing tests: 80 PostgreSQL/RLS integration, 21 React/jsdom, 8 W1 dates/day-model, 7 W2 coverage, 5 effective-permission, 3 support-clock, 3 spreadsheet και 25 αρχικά unit tests. Περιλαμβάνουν W3 leave, hierarchy/transfer και category-points tests.
 - PGlite με πραγματικό schema/migrations και synthetic actors δύο οργανισμών· authenticated role/JWT-sub fixture, όχι mock SQL assertions.
 - Corrective migrations πάνω σε populated fixture· test διατήρησης tenant/profile/membership δεδομένων.
-- Build επιτυχές, lint 0 errors/37 warnings, dependency audit 0 vulnerabilities κατά τον έλεγχο.
+- Build επιτυχές (~755 kB main chunk), lint 0 errors/39 warnings, dependency audit 0 vulnerabilities κατά τον έλεγχο.
 - Chrome W1 smoke desktop/mobile με synthetic transport και χωρίς remote writes. Hosted Auth/PostgREST/Realtime, πλήρες browser regression και concurrent multi-connection tests παραμένουν ανοιχτά.
 
 ## Ευρήματα Phase 0/1.1
@@ -105,9 +105,9 @@
 
 ## Περιορισμοί και επόμενη επαλήθευση
 
-1. Εφαρμογή των οκτώ νέων migrations μία φορά, με τη σειρά του `IMPLEMENTATION_PROGRESS.md`, πριν από το νέο frontend. Hosted smoke tests σε synthetic accounts.
+1. W1/W2 migrations αναφέρθηκαν ως εφαρμοσμένα και deployed. W3 migration εφαρμόστηκε κατά δήλωση χρήστη· store hierarchy migration και hosted smoke σε synthetic accounts προηγούνται του αντίστοιχου client deploy.
 2. Έλεγχος operational foreign references (user/category/store), remaining privileged RPCs και όλων των Realtime subscriptions. Οι συγκεκριμένες επιτυχείς δοκιμές δεν συνιστούν καθολική απόδειξη tenant isolation.
-3. Συντονισμένη διάθεση support access· το σημερινό live δεν έχει τα νέα restrictions. Ενιαίο audit/retention/monitoring παραμένει επόμενη εργασία.
+3. Συντονισμένη διάθεση W3/store roles μετά τη 10η migration. Ενιαίο audit/retention/monitoring παραμένει επόμενη εργασία.
 4. Month locks, atomic import/conflict detection, ασφαλές workforce draft/publish και non-additive category analytics.
 5. Email verification/MFA, κατάλληλο hosting, monitoring και μελλοντική δοκιμή restore όταν επανενεργοποιηθεί η εργασία backups.
 
@@ -120,7 +120,7 @@
 - Restrictive SELECT policy στο `leave_requests` αποτρέπει παράκαμψη της ιδιωτικότητας αιτιολογιών με direct table read.
 - SQL tests: cross-store/invalid windows, own projection, overlapping periods, redaction, org-only managers, inactive/revoked actors και master support end.
 - Frontend αλλάζει cache key και κρύβει παλιό payload σε αλλαγή scope/περιόδου. Αποτυχημένο write διατηρεί τις τιμές και δεν εμφανίζει επιτυχία.
-- Τα transactional leave approval/revoke/ledger και approved-absence invariants όλων των write paths παραμένουν W3· τα νέα UI guards δεν παρουσιάζονται ως πλήρης DB εγγύηση.
+- Το W3 υλοποιήθηκε και η migration δηλώθηκε εφαρμοσμένη· το client deploy εκκρεμεί. Το store-role/transfer migration είναι τοπικό και pending.
 
 ## SEC-29 — W2 διαστήματα, ανάγκες και stale writes
 

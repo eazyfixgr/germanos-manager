@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
+import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { monthLabel } from '../lib/constants'
 import { addDays, calendarRange, daysInRange, formatScheduleDate, monthRange, movePeriod, todayInAthens, weekRange, type ScheduleView } from '../lib/schedule/dates'
-import { buildDay, shiftLabel, shiftTone, type ScheduleScope, type StaffDay } from '../lib/schedule/model'
+import { buildDay, shiftLabel, shiftTone, type ScheduleScope } from '../lib/schedule/model'
 import { useScheduleData } from '../lib/schedule/useScheduleData'
 import { exportSchedule } from '../lib/schedule/export'
 import { Button, Card, EmptyState, ErrorBox, Input, MetricCard, PageHeader, SuccessBox } from '../components/ui'
@@ -10,7 +11,6 @@ import { MonthCalendar, WeekCalendar } from '../components/schedule/CalendarView
 import DayReview from '../components/schedule/DayReview'
 import WorkforceSettings from '../components/schedule/WorkforceSettings'
 import GenerationDialog from '../components/schedule/GenerationDialog'
-import ShiftEditor from '../components/schedule/ShiftEditor'
 import { LeaveRequestForm, LeaveRequests } from '../components/schedule/LeaveRequests'
 import ScheduleIcon from '../components/schedule/ScheduleIcon'
 
@@ -27,7 +27,6 @@ export default function Schedule() {
   const [newRequest, setNewRequest] = useState(false)
   const [patternOpen, setPatternOpen] = useState(false)
   const [generationOpen, setGenerationOpen] = useState(false)
-  const [editing, setEditing] = useState<StaffDay | null>(null)
   const [success, setSuccess] = useState('')
 
   const period = view === 'month' ? monthRange(cursor.slice(0, 7)) : weekRange(cursor)
@@ -125,10 +124,14 @@ export default function Schedule() {
       </Card>
     </div>}
 
-    {data && dayOpen && selectedDay && <DayReview day={selectedDay} canEdit={canManage} loading={loading} onClose={() => setDayOpen(false)} onEdit={setEditing} onRequests={() => setRequestsOpen(true)} />}
-    {data && editing && canManage && <ShiftEditor key={`${editing.person.id}-${selected}`} storeId={store.id} date={selected} row={editing} templates={data.templates} closed={selectedDay?.opening === 'closed'} openingHours={selectedDay?.hours} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); saved('Η βάρδια αποθηκεύτηκε.') }} />}
+    {data && dayOpen && selectedDay && <DayReview key={`${selected}-${data.scope}`} data={data} day={selectedDay} canEdit={canManage} loading={loading} templates={data.templates} onClose={() => setDayOpen(false)} onRequests={() => setRequestsOpen(true)} onSaveDay={async (assignments) => {
+      const { data: count, error: saveError } = await supabase.rpc('save_schedule_day', { p_store: store.id, p_date: selected, p_assignments: assignments })
+      if (saveError) throw new Error(saveError.code === 'PGRST202' ? 'Η ατομική αποθήκευση ημέρας απαιτεί το W3 migration.' : saveError.message)
+      setDayOpen(false)
+      saved(`Αποθηκεύτηκαν ${count ?? assignments.length} αλλαγές ημέρας.`)
+    }} />}
     {data && requestsOpen && profile && <LeaveRequests data={data} range={period} actorId={profile.id} canManage={canManage} canRequest={canRequest} onClose={() => setRequestsOpen(false)} onNew={() => setNewRequest(true)} onChanged={() => saved('Η κατάσταση της αίτησης ενημερώθηκε.')} />}
-    {newRequest && profile && canRequest && <LeaveRequestForm storeId={store.id} userId={profile.id} initialDate={selected} onClose={() => setNewRequest(false)} onSaved={() => { setNewRequest(false); saved('Η αίτηση υποβλήθηκε για έγκριση.') }} />}
+    {data && newRequest && profile && canRequest && <LeaveRequestForm data={data} initialDate={selected} onClose={() => setNewRequest(false)} onSaved={() => { setNewRequest(false); saved('Η αίτηση υποβλήθηκε για έγκριση.') }} />}
     {data && patternOpen && canManage && <WorkforceSettings data={data} onClose={() => setPatternOpen(false)} onChanged={() => saved('Οι ρυθμίσεις ενημερώθηκαν.')} />}
     {generationOpen && canManage && <GenerationDialog storeId={store.id} month={cursor.slice(0, 7)} onClose={() => setGenerationOpen(false)} onSaved={(message) => { setGenerationOpen(false); saved(message) }} />}
   </div>

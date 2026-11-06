@@ -29,8 +29,13 @@ export default function GenerationDialog({ storeId, month, onClose, onSaved }: {
         const previous = initialFairness[row.user_id] ?? { split: 0, short: 0 }
         initialFairness[row.user_id] = { split: previous.split + Number(row.split_offs), short: previous.short + Number(row.short_offs) }
       }
-      setPreview(buildSchedule({ storeId, month: target, employees, patterns: data.patterns, calendar: data.calendar,
-        leaves: data.leaves, minStaff: data.min_staff, initialFairness }))
+      const result = buildSchedule({ storeId, month: target, employees, patterns: data.patterns, calendar: data.calendar,
+        leaves: data.leaves.filter((leave) => leave.status !== 'revoked').map((leave) => ({ ...leave, status: leave.status as 'pending'|'approved'|'rejected' })),
+        minStaff: data.min_staff, initialFairness })
+      if (result.shifts.some((shift) => shift.shift_type === 'split')) {
+        throw new Error('Η αυτόματη κατανομή δεν έχει ακόμη πραγματικά διαστήματα σπαστού. Δεν αποθηκεύτηκε πρόγραμμα με εκτιμώμενες ώρες· καταχωρίστε τις βάρδιες χειροκίνητα.')
+      }
+      setPreview(result)
     } catch (e) { setError(e instanceof Error ? e.message : 'Η προετοιμασία απέτυχε.') }
     finally { setBusy(false) }
   }

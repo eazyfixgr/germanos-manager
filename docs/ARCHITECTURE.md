@@ -88,6 +88,7 @@ Role guards στο UI είναι συμπληρωματικοί. Η πραγμα
 - `organization_memberships`: ρόλοι owner/admin/member ανά οργανισμό.
 - `organization_audit_events`: actor/target, previous/new org role, timestamp (νέο τοπικό migration).
 - `support_access_sessions`, `support_audit_events`: support lifecycle και scoped before/after master mutations (τοπικά).
+- `leave_request_day_ledger`, `leave_request_events`: W3 ημερήσια disposition/snapshot και transactional lifecycle audit (migration εφαρμόστηκε κατά δήλωση χρήστη, client deploy pending).
 - `store_memberships`: πρόσβαση και ρόλος ανά κατάστημα (admin/user, is_seller, can_edit_points).
 - `store_targets`, `employee_targets`: στόχοι πόντων ανά μήνα.
 - `point_entries`: ημερήσιοι πόντοι ανά υπάλληλο.
@@ -115,6 +116,8 @@ Role guards στο UI είναι συμπληρωματικοί. Η πραγμα
   - `store_capabilities`, `list_organization_people`, `set_organization_member` (νέα τοπικά migrations).
   - `read_schedule(store,start,end,scope)`: W1/W2, έως 62 ημέρες, minimal membership-based staff, redacted team absences/notes και πραγματικά διαστήματα/ρυθμίσεις.
   - `save_shift_template`, `archive_shift_template`, `save_staffing_requirement`, `end_staffing_requirement`, `save_shift_assignment`, `read_workforce_configuration`: W2 ρυθμίσεις/αναθέσεις με store lock, revision και ημερομηνίες ισχύος.
+  - `submit_leave_request`, `review_leave_request`, `revoke_leave_request`, `save_schedule_day`: W3 transactional αιτήσεις/ledger και revision-safe atomic day batches.
+  - `submit_store_transfer`, `review_store_transfer`, `master_transfer_member`: W4 ιεραρχικές αιτήσεις και audit-safe platform transfer (migration pending).
 - Triggers προστασίας: profile fields, target points, task fields, master allowlist.
 - Sync trigger `sync_store_membership`: συγχρονίζει authority/lifecycle αλλαγές του home store profile, όχι contact-only updates. Δεν ανασταίνει revoked membership από αλλαγή ονόματος.
 - Restrictive active-account policies στα operational tables και store-access policies στα self-row sales/targets/tasks. Owner guards εμποδίζουν απώλεια του τελευταίου ενεργού org owner.
@@ -172,7 +175,7 @@ Role guards στο UI είναι συμπληρωματικοί. Η πραγμα
 1. Τρέξε `supabase/schema.sql`.
 2. Τρέξε τα migrations με χρονολογική σειρά.
 
-Σειρά 5/11: `20261105_membership_authorization.sql`, `20261105_organization_membership_management.sql`, `20261105_support_access.sql`, `20261105_support_access_guards.sql`, `20261105_workforce_read_model.sql`, `20261105_workforce_w2_01_intervals.sql`, `20261105_workforce_w2_02_configuration.sql`, `20261105_workforce_w2_03_assignments.sql`. Εφαρμόζονται μία φορά πριν από το νέο frontend, που απαιτεί capabilities, support και `read_schedule` RPCs. Σε υπάρχουσα βάση δεν επανεκτελείται baseline/seeds. Το `app_private` δεν εκτίθεται στο PostgREST.
+Σειρά 5/11: `20261105_membership_authorization.sql`, `20261105_organization_membership_management.sql`, `20261105_support_access.sql`, `20261105_support_access_guards.sql`, `20261105_workforce_read_model.sql`, `20261105_workforce_w2_01_intervals.sql`, `20261105_workforce_w2_02_configuration.sql`, `20261105_workforce_w2_03_assignments.sql`, `20261105_workforce_w3_leave_transactions.sql`. Τα πρώτα 8 εφαρμόστηκαν και διατέθηκαν σύμφωνα με επιβεβαίωση χρήστη. Η 9η εφαρμόζεται μία φορά πριν από W3 client deploy. Σε υπάρχουσα βάση δεν επανεκτελείται baseline/seeds. Το `app_private` δεν εκτίθεται στο PostgREST.
 
 ### Περιορισμός hosting
 

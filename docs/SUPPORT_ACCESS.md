@@ -66,7 +66,10 @@
 6. `20261105_workforce_w2_01_intervals.sql`
 7. `20261105_workforce_w2_02_configuration.sql`
 8. `20261105_workforce_w2_03_assignments.sql`
+9. `20261105_workforce_w3_leave_transactions.sql` (W3, ο χρήστης επιβεβαίωσε εφαρμογή)
+10. `20261105_store_hierarchy_transfers.sql` (ρόλοι καταστήματος, ιεραρχία και μεταφορές· pending)
+11. `20261105_store_point_categories.sql` (πόντοι ανά κατηγορία, store-specific rates/targets και corrections· pending)
 
-Εκτέλεση μία φορά και **πριν από το αντίστοιχο frontend**. Το παλιό master UI δεν είναι συμβατό με τη νέα default-deny συμπεριφορά· απαιτείται συντονισμένη διάθεση βάσης/client. Το `app_private` δεν πρέπει να προστεθεί στα exposed PostgREST schemas.
+Εκτέλεση μία φορά και **πριν από το αντίστοιχο frontend**. Ο χρήστης επιβεβαίωσε τα πρώτα 8 και το W3. Εκκρεμούν οι migrations 10 και 11 με την παραπάνω σειρά. Το παλιό master UI δεν είναι συμβατό με τη νέα default-deny συμπεριφορά· απαιτείται συντονισμένη διάθεση βάσης/client. Το `app_private` δεν πρέπει να προστεθεί στα exposed PostgREST schemas.
 
 Πριν διάθεση: synthetic master χωρίς session → άρνηση tenant data, start στο Α → πρόσβαση μόνο Α, direct RPC προς Β → άρνηση, end/expiry → άρνηση, tenant owner → δικό του audit, νέα αίτηση καταστήματος → onboarding χωρίς support session.

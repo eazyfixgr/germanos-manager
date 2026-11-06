@@ -13,6 +13,11 @@ export interface ScheduleData {
   workforce_schema?: number; templates?: ShiftTemplate[]; requirements?: StaffingRequirement[]
 }
 export type DayStatus = 'work' | 'repo' | 'adeia' | 'unassigned' | 'closed'
+export interface DayAssignmentDraft {
+  id: string | null; revision: number; user_id: string; date: string; template_id: string | null
+  template_code?: string | null; template_name?: string | null; template_short_label?: string | null; template_color?: string | null
+  shift_type: string; segments: { start: string; end: string }[] | null; note: string | null
+}
 export interface StaffDay {
   person: ScheduleStaff; shift?: Shift; approved?: LeaveRequest
   status: DayStatus; conflict: boolean; hoursIssue: boolean
@@ -68,10 +73,13 @@ export function buildDay(data: ScheduleData, date: string, minStaff = 0): Schedu
     const absences = approved.filter((leave) => leave.user_id === person.id)
     const absence = absences.find((leave) => leave.type === 'adeia') ?? absences[0]
     if (!person.active && !shift && !absence) continue
-    const conflict = Boolean(absence && shift && shift.shift_type !== absence.type)
+    const ledgerDay = absence?.ledger?.find((entry) => entry.date === date)
+    const scheduledRest = absence?.type === 'adeia' && shift?.shift_type === 'repo'
+      && ['requested_rest','preexisting_rest'].includes(ledgerDay?.disposition ?? '')
+    const conflict = Boolean(absence && shift && shift.shift_type !== absence.type && !scheduledRest)
     if (conflict) issues.add('Εγκεκριμένη απουσία με διαφορετική καταχωρημένη βάρδια.')
     if (absences.length > 1) issues.add('Επικαλυπτόμενες εγκεκριμένες απουσίες.')
-    const type = absence?.type ?? shift?.shift_type
+    const type = scheduledRest ? 'repo' : absence?.type ?? shift?.shift_type
     const status: DayStatus = type === 'repo' || type === 'adeia' ? type
       : shift ? 'work' : opening === 'closed' ? 'closed' : 'unassigned'
     const hoursIssue = status === 'work' && Boolean(shift?.start_time && shift.end_time && (

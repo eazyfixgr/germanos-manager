@@ -3,12 +3,14 @@ import { Navigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { Button, ErrorBox, Field, Input, SuccessBox } from '../components/ui'
-import type { AccountType } from '../lib/types'
+import type { AccountType, StorePosition, StoreType } from '../lib/types'
 
 export default function Login() {
   const { session, profile, signIn, signUp, signOut } = useAuth()
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [accountType, setAccountType] = useState<AccountType>('user')
+  const [storeType, setStoreType] = useState<StoreType>('franchise')
+  const [storePosition, setStorePosition] = useState<StorePosition>('director')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
@@ -44,10 +46,15 @@ export default function Login() {
     }
 
     setBusy(true)
-    const { data: foundRows } = await supabase.rpc('lookup_store_code', {
+    const { data: foundRows, error: lookupError } = await supabase.rpc(accountType === 'admin' ? 'lookup_store_registration' : 'lookup_store_code', {
       p_code: storeCode.trim(),
     })
-    const found = (foundRows as { id: string; name: string }[] | null)?.[0] ?? null
+    if (accountType === 'admin' && lookupError) {
+      setBusy(false)
+      setError('Απαιτείται η migration ρόλων καταστήματος πριν από εγγραφή στελέχους.')
+      return
+    }
+    const found = (foundRows as { id: string; name: string; store_type?: StoreType }[] | null)?.[0] ?? null
 
     if (accountType === 'user') {
       if (!found) {
@@ -60,9 +67,27 @@ export default function Login() {
         setError(`Ο κωδικός ανήκει στο κατάστημα «${found.name}». Ελέγξτε το όνομα καταστήματος.`)
         return
       }
+    } else if (found && found.name.trim().toLowerCase() !== storeName.trim().toLowerCase()) {
+      setBusy(false)
+      setError(`Ο κωδικός ανήκει στο κατάστημα «${found.name}». Ελέγξτε το όνομα καταστήματος.`)
+      return
+    } else if (found && found.store_type && found.store_type !== storeType) {
+      setBusy(false)
+      setError(`Το κατάστημα «${found.name}» είναι ${found.store_type === 'franchise' ? 'Franchise' : 'ιδιόκτητο'}. Επιλέξτε τον σωστό τύπο καταστήματος.`)
+      return
+    } else if (storePosition === 'owner' && storeType !== 'franchise') {
+      setBusy(false)
+      setError('Ο ρόλος Ιδιοκτήτη διατίθεται μόνο σε Franchise.')
+      return
+    } else if (!found && storeType === 'franchise' && storePosition !== 'owner') {
+      setBusy(false)
+      setError('Για νέο Franchise απαιτείται αίτηση Ιδιοκτήτη. Για τους υπόλοιπους ρόλους επιλέξτε υπάρχον κατάστημα.')
+      return
     }
 
-    const res = await signUp(email, password, fullName, accountType, storeName, storeCode)
+    const res = await signUp(email, password, fullName, accountType, storeName, storeCode,
+      accountType === 'admin' ? storeType : undefined,
+      accountType === 'admin' ? storePosition : 'employee')
     setBusy(false)
     if (res.error) {
       setError(res.error)
@@ -164,10 +189,29 @@ export default function Login() {
                         : 'border-slate-300 bg-white text-slate-600'
                     }`}
                   >
-                    Υπεύθυνος
+                    Στέλεχος καταστήματος
                   </button>
                 </div>
               </Field>
+
+              {accountType === 'admin' && <>
+                <Field label="Τύπος καταστήματος">
+                  <select className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" value={storeType}
+                    onChange={(e) => { const value = e.target.value as StoreType; setStoreType(value); if (value === 'owned' && storePosition === 'owner') setStorePosition('director') }}>
+                    <option value="franchise">Franchise</option>
+                    <option value="owned">Ιδιόκτητο (ΑΦΜ ΓΕΡΜΑΝΟΣ)</option>
+                  </select>
+                </Field>
+                <Field label="Ρόλος στο κατάστημα">
+                  <select className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" value={storePosition}
+                    onChange={(e) => setStorePosition(e.target.value as StorePosition)}>
+                    {storeType === 'franchise' && <option value="owner">Ιδιοκτήτης Franchise</option>}
+                    <option value="director">Διευθυντής καταστήματος</option>
+                    <option value="assistant_director">Υποδιευθυντής</option>
+                    <option value="supervisor">Προϊστάμενος καταστήματος</option>
+                  </select>
+                </Field>
+              </>}
 
               <Field label="Ονοματεπώνυμο">
                 <Input required value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Γιώργος Παπαδόπουλος" />
@@ -193,7 +237,7 @@ export default function Login() {
               <p className="text-xs text-slate-500">
                 {accountType === 'user'
                   ? 'Χρειάζονται το σωστό όνομα και ο κωδικός του καταστήματος. Η εγγραφή εγκρίνεται από τον υπεύθυνο.'
-                  : 'Αν ο κωδικός ανήκει σε υπάρχον κατάστημα, η εγγραφή εγκρίνεται από υπεύθυνο του καταστήματος. Αν όχι, η δημιουργία νέου καταστήματος εγκρίνεται από τον master.'}
+                  : 'Η αίτηση εγκρίνεται από ανώτερο ρόλο του καταστήματος. Ιδιοκτήτης Franchise μπορεί να έχει πρόσβαση σε όλα τα καταστήματα του Franchise.'}
               </p>
 
               <Button type="submit" disabled={busy} className="w-full">

@@ -57,11 +57,14 @@
 - [x] Σελίδα **Οργανισμός** με λίστα καταστημάτων και δημιουργία νέου.
 - [x] Τοπικό UI διαχείρισης org memberships, owner-only RPC, last-owner guards και role audit.
 - [x] Τοπικό org-only admin UI με effective store capabilities αντί legacy profile role.
-- [ ] Συντονισμένη εφαρμογή των οκτώ migrations `20261105_*` και hosted acceptance πριν client deployment.
+- [x] Εφαρμογή των οκτώ authorization/W1/W2 migrations και deploy W1/W2 (`116767a`), με επιβεβαίωση χρήστη.
+- [x] Ο χρήστης επιβεβαίωσε εφαρμογή της 9ης migration W3.
+- [ ] Εφαρμογή της 10ης migration `store_hierarchy_transfers` (ρόλοι/ιεραρχία/μεταφορές) και συντονισμένο client deployment μετά από hosted synthetic smoke.
+- [ ] Εφαρμογή της 11ης migration `store_point_categories` μετά τη 10η· store-specific scoring, category targets και audit corrections.
 - [x] Τοπική πρόσβαση υποστήριξης με reason/TTL/start/end, default-deny RLS/RPC guards και before/after audit.
 - [x] React/jsdom lifecycle tests για support start/end/expiry, άλλο tab και logout races.
 - [ ] Ενιαίο audit events (actor, tenant, before/after, reason).
-- [ ] Μηνιαίο κλείδωμα περιόδου, μετά το άμεσο ορόσημο Προγράμματος/αδειών.
+- [ ] Μηνιαίο κλείδωμα περιόδου μετά από W4/W5 και acceptance του Προγράμματος/αδειών.
 - [ ] Backup στρατηγική και restore test (όταν εγκριθεί).
 - [ ] Error monitoring.
 - [ ] Email verification + MFA για privileged roles.
@@ -71,7 +74,11 @@
 - [x] Μελέτη παρεχόμενου demo και καταγραφή UX/gap analysis στο `WORKFORCE_UX_SPEC.md` (προδιαγραφή, όχι UI delivery).
 - [x] W1 τοπικά: shared dialogs, date/read-model helpers, μήνας/εβδομάδα/ημέρα, scoped own/team view και Chrome synthetic desktop/mobile smoke. Όρια/αποδοχή: `WORKFORCE_W1_PROGRESS.md`.
 - [x] W2 core τοπικά: store shift templates/εκδόσεις, πραγματικά intervals/σπαστό, ανάγκες στελέχωσης, revision-safe αναθέσεις και ασφαλές legacy backfill. Time-aware auto-generation/publish παραμένει W4. Αναλυτικά: `WORKFORCE_W2_PROGRESS.md`.
-- [ ] W3: ημερήσιο dialog, atomic save και ολοκληρωμένο leave estimate/approval/revoke/ledger με προστασία εγκεκριμένων απουσιών.
+- [x] W3 core τοπικά: atomic day save, estimate/approval/revoke ledger και snapshot conflict guard.
+- [x] W3 self-approval guard: manager δεν εγκρίνει δική του αίτηση.
+- [x] Ο χρήστης επιβεβαίωσε εφαρμογή της W3 migration· hosted/client acceptance εκκρεμεί.
+- [ ] Store-role/transfer migration και hosted acceptance πριν το live client update. Scope: `STORE_HIERARCHY_PROGRESS.md`.
+- [ ] Category-points UI/DB: αυτόματη πρόταση από sales × store-specific rate, ξεχωριστή total καταχώρηση, στόχοι ανά κατηγορία και append-only corrections. Scope: `POINTS_BY_CATEGORY_SPEC.md`.
 - [ ] W4: draft, interval coverage, εξηγήσιμες προτάσεις, ιστορική δικαιοσύνη, πραγματικά όρια εβδομάδων και publish με revision checks.
 - [ ] W5: desktop/mobile/keyboard και δοκιμές πρώτης χρήσης χωρίς προφορική καθοδήγηση, με διορθώσεις στα ευρήματα.
 - [ ] Πλήρες design system σε όλες τις οθόνες.

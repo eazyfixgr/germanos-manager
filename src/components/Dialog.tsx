@@ -10,6 +10,7 @@ export interface DialogProps {
 const stack: HTMLElement[] = []
 const depths = new WeakMap<HTMLElement, number>()
 const DialogDepth = createContext(0)
+const DialogRequestClose = createContext<() => void>(() => {})
 let previousOverflow = ''
 let rootOpener: HTMLElement | null = null
 const focusableSelector = 'button:not(:disabled), a[href], input:not(:disabled):not([type="hidden"]), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
@@ -24,6 +25,14 @@ function focusable(panel: HTMLElement) {
 export default function Dialog(props: DialogProps) {
   const depth = useContext(DialogDepth)
   return props.open ? <DialogDepth.Provider value={depth + 1}><OpenDialog {...props} depth={depth} /></DialogDepth.Provider> : null
+}
+export function useDialogRequestClose() { return useContext(DialogRequestClose) }
+export function DialogCloseButton({ children, className = '', disabled = false }: {
+  children: ReactNode; className?: string; disabled?: boolean
+}) {
+  const close = useDialogRequestClose()
+  return <button type="button" disabled={disabled} onClick={close}
+    className={`inline-flex items-center justify-center gap-2 rounded-control border border-line bg-surface px-3.5 py-2 text-sm font-semibold transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50 ${className}`}>{children}</button>
 }
 
 function OpenDialog({ onClose, title, description, children, footer, size = 'sm', busy = false, dirty = false, depth }: DialogProps & { depth: number }) {
@@ -102,7 +111,7 @@ function OpenDialog({ onClose, title, description, children, footer, size = 'sm'
 
   const sizes = { sm: 'max-w-lg', lg: 'max-w-3xl', xl: 'max-w-6xl' }
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0d1628]/50 p-2 backdrop-blur-sm sm:p-5"
+    <DialogRequestClose.Provider value={requestClose}><div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0d1628]/50 p-2 backdrop-blur-sm sm:p-5"
       onClick={(event) => { if (event.target === event.currentTarget && stack.at(-1) === panelRef.current) requestClose() }}>
       <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined} aria-busy={busy || undefined} tabIndex={-1}
@@ -127,6 +136,6 @@ function OpenDialog({ onClose, title, description, children, footer, size = 'sm'
           </div>
         </div> : footer && <footer className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-line bg-slate-50/60 px-4 py-3 sm:px-6 sm:py-4">{footer}</footer>}
       </div>
-    </div>, document.body,
+    </div></DialogRequestClose.Provider>, document.body,
   )
 }

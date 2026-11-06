@@ -7,6 +7,7 @@ import { downloadCsv } from '../lib/csv'
 import { logActivity } from '../lib/activity'
 import type { EmployeeTarget, Profile, StoreTarget } from '../lib/types'
 import { Button, Card, Field, Input, Modal, PageHeader, Spinner } from '../components/ui'
+import PointCategoryPanel from '../components/PointCategoryPanel'
 
 interface PointRow { id: string; user_id: string; date: string; points: number }
 interface ShiftRow { user_id: string; date: string; shift_type: string }
@@ -17,7 +18,7 @@ function todayStr() {
 }
 
 export default function Targets() {
-  const { profile, store, isAdmin, canEditPoints } = useAuth()
+  const { profile, store, isAdmin, isPrimary, canEditPoints } = useAuth()
   const [month, setMonth] = useState(currentMonth())
   const [storeTarget, setStoreTarget] = useState<StoreTarget | null>(null)
   const [empTargets, setEmpTargets] = useState<EmployeeTarget[]>([])
@@ -278,6 +279,9 @@ export default function Targets() {
           </table>
         </div>
       </Card>
+
+      {profile && <PointCategoryPanel storeId={store.id} month={month} actor={profile} employees={employees}
+        isAdmin={isAdmin} isMaster={profile.role==='master'} canConfigure={isPrimary||profile.role==='master'} />}
 
       <Modal open={!!pointsFor} onClose={() => setPointsFor(null)} title={`Πόντοι — ${pointsFor?.full_name ?? ''}`}>
         <form onSubmit={saveEntry} className="space-y-3">

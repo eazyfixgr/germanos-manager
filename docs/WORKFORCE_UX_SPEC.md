@@ -1,6 +1,6 @@
 # Πρόγραμμα & άδειες — οδηγός UX και λειτουργικής αναβάθμισης
 
-Ημερομηνία: 5 Νοεμβρίου 2026. Κατάσταση: **W1 και W2 core υλοποιημένα τοπικά**, W3–W5 προς υλοποίηση. Λεπτομέρειες: [WORKFORCE_W1_PROGRESS.md](WORKFORCE_W1_PROGRESS.md), [WORKFORCE_W2_PROGRESS.md](WORKFORCE_W2_PROGRESS.md). Δεν έχει γίνει remote εφαρμογή/deploy.
+Ημερομηνία: 5 Νοεμβρίου 2026. Κατάσταση: **W1/W2 live, W3 migration εφαρμόστηκε και client pending· ρόλοι/μεταφορές τοπικά, migration pending· W4/W5 προς υλοποίηση**. Λεπτομέρειες: [W1](WORKFORCE_W1_PROGRESS.md), [W2](WORKFORCE_W2_PROGRESS.md), [W3](WORKFORCE_W3_PROGRESS.md), [Ρόλοι/μεταφορές](STORE_HIERARCHY_PROGRESS.md).
 
 ## 1. Αναφορά και προτεραιότητα
 

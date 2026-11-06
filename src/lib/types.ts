@@ -1,4 +1,53 @@
 export type Role = 'master' | 'admin' | 'user'
+export type StoreType = 'franchise' | 'owned'
+export type StorePosition = 'owner' | 'director' | 'assistant_director' | 'supervisor' | 'employee'
+export type PointCategoryKey = 'fixed' | 'mobile' | 'tv' | 'protergia' | 'fixed_portability' | 'mobile_portability'
+
+export interface PointCategory {
+  category_key: PointCategoryKey
+  name: string
+  sort_order: number
+}
+
+export interface StorePointRule {
+  store_id: string
+  service_category_id: string
+  valid_from: string
+  point_category_key: PointCategoryKey | null
+  points_per_unit: number
+  updated_by: string | null
+  updated_at: string
+}
+
+export interface StorePointCategoryTarget {
+  store_id: string
+  category_key: PointCategoryKey
+  month: string
+  target: number
+}
+
+export interface EmployeePointCategoryTarget extends StorePointCategoryTarget {
+  user_id: string
+}
+
+export interface PointCategoryScore {
+  user_id: string
+  category_key: PointCategoryKey
+  sales_points: number
+  adjustments: number
+  total_points: number
+}
+
+export interface PointCategoryAdjustment {
+  id: string
+  user_id: string
+  category_key: PointCategoryKey
+  date: string
+  points_delta: number
+  reason: string
+  created_by: string
+  created_at: string
+}
 
 export interface Profile {
   id: string
@@ -11,6 +60,9 @@ export interface Profile {
   active: boolean
   can_edit_points: boolean
   is_primary: boolean
+  store_position: StorePosition
+  pending_position: StorePosition | null
+  pending_store_type: StoreType | null
   is_seller: boolean
   deleted_at: string | null
   deleted_by: string | null
@@ -24,6 +76,8 @@ export interface Store {
   name: string
   code: string | null
   organization_id: string | null
+  store_type: StoreType
+  acting_director_id?: string | null
   address: string | null
   phone: string | null
   open_hours: string | null
@@ -112,7 +166,7 @@ export interface Shift {
   revision?: number
 }
 
-export type LeaveStatus = 'pending' | 'approved' | 'rejected'
+export type LeaveStatus = 'pending' | 'approved' | 'rejected' | 'revoked'
 
 export interface LeaveRequest {
   id: string
@@ -125,6 +179,11 @@ export interface LeaveRequest {
   status: LeaveStatus
   reviewed_by: string | null
   created_at: string
+  revision?: number
+  requested_rest_dates?: string[]
+  reviewed_at?: string | null
+  revoked_at?: string | null
+  ledger?: { date: string; disposition: 'charged_leave' | 'approved_rest' | 'requested_rest' | 'preexisting_rest' | 'closed' }[]
 }
 
 export interface ActivityLog {

@@ -4,9 +4,9 @@
 
 Responsive web app (React + Vite + Tailwind), με **Supabase** για auth, βάση δεδομένων και realtime. Deploy σε **GitHub Pages**.
 
-**Κατάσταση (5/11/2026):** το live είναι demo. Το working tree περιέχει membership authorization, org μέλη, support access, **Πρόγραμμα W1** (μήνας/εβδομάδα/ανάλυση ημέρας) και **W2 core** (πραγματικά διαστήματα/ανάγκες στελέχωσης), με οκτώ νέα migrations πριν από διάθεση client. Δεν έχουν εφαρμοστεί στη demo βάση. Επαληθευμένη πρόοδος/σειρά migrations: [Implementation Progress](docs/IMPLEMENTATION_PROGRESS.md).
+**Κατάσταση (5/11/2026):** το live περιέχει authorization, support access και **Πρόγραμμα W1/W2** μετά την εφαρμογή των οκτώ migrations από τον χρήστη. Το working tree έχει επιπλέον W3 για transactional άδειες/ημερήσια αποθήκευση· απαιτεί 9η migration πριν γίνει deploy. [Implementation Progress](docs/IMPLEMENTATION_PROGRESS.md).
 
-**Επόμενη προτεραιότητα:** ολοκληρωμένες άδειες/ledger (W3) και draft/publish (W4) πριν από period closing. Πλάνο: [Workforce UX](docs/WORKFORCE_UX_SPEC.md), [W2 λεπτομέρειες](docs/WORKFORCE_W2_PROGRESS.md), [Σημειώσεις, Προωθητικές PDF, Chat](docs/COLLABORATION_MODULES_PLAN.md).
+**Επόμενη προτεραιότητα:** deploy του W3 μετά την 9η migration, έπειτα draft/publish (W4) πριν από period closing. Πλάνο: [W3](docs/WORKFORCE_W3_PROGRESS.md), [Workforce UX](docs/WORKFORCE_UX_SPEC.md), [Σημειώσεις, Προωθητικές PDF, Chat](docs/COLLABORATION_MODULES_PLAN.md).
 
 ## Λειτουργίες
 
@@ -68,7 +68,7 @@ npm run lint
 npm audit
 ```
 
-Σε Windows PowerShell μπορεί να χρειάζεται `npm.cmd`. Τα 131 tests περιλαμβάνουν PostgreSQL/RLS μέσω PGlite και React Testing Library/jsdom. Τα W1/W2 ελέγχθηκαν επιπλέον σε πραγματικό Chrome desktop/mobile με synthetic API transport και χωρίς remote writes. Hosted Supabase/Realtime acceptance παραμένει ανοιχτό. [Security Audit](docs/SECURITY_AUDIT.md), [Roadmap](docs/IMPLEMENTATION_ROADMAP.md).
+Σε Windows PowerShell μπορεί να χρειάζεται `npm.cmd`. Τα 145 tests περιλαμβάνουν PostgreSQL/RLS μέσω PGlite και React Testing Library/jsdom. Τα W1/W2 ελέγχθηκαν επιπλέον σε πραγματικό Chrome desktop/mobile με synthetic API transport και χωρίς remote writes. Το W3 ελέγχθηκε σε PGlite/React synthetic tests. Hosted Supabase/Realtime acceptance παραμένει ανοιχτό. [Security Audit](docs/SECURITY_AUDIT.md), [Roadmap](docs/IMPLEMENTATION_ROADMAP.md).
 
 ## Χρήση — πρώτα βήματα
 
